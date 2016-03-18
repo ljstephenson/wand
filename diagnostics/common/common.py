@@ -48,6 +48,7 @@ class JSONConfigurable(object):
 
         # Set all attrs so that they exist
         self.set_blank()
+        self.filename = None
 
         if cfg:
             self.from_dict(cfg)
@@ -64,19 +65,25 @@ class JSONConfigurable(object):
             else:
                 setattr(self, attr, None)
 
-    def from_file(self, fname):
+    def from_file(self, fname=None):
         """Set configuration from a file"""
-        with open(fname, 'r') as f:
+        if fname is not None:
+            self.filename = fname            
+
+        with open(self.filename, 'r') as f:
             cfg = json.load(f, object_pairs_hook=collections.OrderedDict)
         self.from_dict(cfg)
 
-    def to_file(self, fname, **kwargs):
+    def to_file(self, fname=None, **kwargs):
         """Print configuration to a file"""
         # Default to pretty printing with indent
-        if kwargs is None:
+        if kwargs == {}:
             kwargs = {'indent':4, 'separators':(',', ': ')}
 
-        with open(fname, 'w') as f:
+        if fname is not None:
+            self.filename = fname
+
+        with open(self.filename, 'w') as f:
             json.dump(self.to_dict(), f, **kwargs)
 
     def from_json(self, cfg_str):
@@ -96,23 +103,30 @@ class JSONConfigurable(object):
         Will update rather than overwrite, so call set_blank to clear config.
         """
         for attr, cls in self._attrs.items():
-            # Get the raw object from config (will be None if missing)
-            val = cfg.get(attr)
-
-            if cls and val is not None:
-                # Form the dictionary of sub items
-                _dict = collections.OrderedDict()
-                for name, sub_cfg in val.items():
-                    _dict[name] = cls(cfg=sub_cfg)
-
-                # Update the current dictionary with the new one
-                getattr(self, attr).update(_dict)
-            elif cls:
-                # We expected a dict but got nothing
+            # Get the raw object from config
+            # Note that object not supplied (KeyError, do nothing) is not the
+            # same as a None object supplied (clear that section)
+            try:
+                val = cfg[attr]
+            except KeyError:
+                # Not supplied, don't change
                 pass
             else:
-                # Just store the raw value
-                setattr(self, attr, val)
+                if cls and val is not None:
+                    # Form the dictionary of new sub items
+                    _dict = collections.OrderedDict()
+                    for name, sub_cfg in val.items():
+                        _dict[name] = cls(cfg=sub_cfg)
+
+                    # Update the current dictionary with the new one
+                    getattr(self, attr).update(_dict)
+                elif cls:
+                    # We expected a dict but got nothing, set to blank dict
+                    setattr(self, attr, collections.OrderedDict())
+                else:
+                    # Just store the raw value
+                    setattr(self, attr, val)
+
 
     def to_dict(self):
         """Return the dict representing this item's configuration"""
@@ -148,32 +162,17 @@ class Channel(JSONConfigurable):
     """
     Stores information about a switcher channel.
 
-    :attr name:
-       name for the channel (chosen, must be unique per server)
+    :attr name: name for the channel (chosen, must be unique per server)
 
-    :attr exposure:
-       integer exposure time (ms) to use for wavemeter
+    :attr exposure: integer exposure time (ms) to use for wavemeter
 
-    :attr reference:
-       reference frequency value to use when calculating detuning
+    :attr reference: reference frequency value to use when calculating detuning
 
-    :attr number:
-        physical channel number on switcher
+    :attr number: physical channel number on switcher
 
-    :attr array:
-        ccd array to use on wavemeter
+    :attr array: ccd array to use on wavemeter
 
-    :attr blue:
-        true if blue
-
-    :attr time:
-       time of last update
-
-    :attr frequency:
-       last measured frequency
-
-    :attr last_log:
-       time of last write to server log
+    :attr blue: true if blue
     """
     # JSON configurable attributes
     _attrs = collections.OrderedDict([
@@ -185,20 +184,9 @@ class Channel(JSONConfigurable):
                 ('blue', None),
             ])
 
-    def __init__(self, *args, **kwargs):
-        # JSON configuration initialisation
-        super().__init__(*args, **kwargs)
-
-        # self.cfg = cfg
-
-        # Transient
-        self.time = None
-        self.frequency = None
-        self.last_log = None
-
     @property
     def detuning(self):
-        return self.frequency - self.reference
+        return (self.frequency - self.reference)
 
 
 class JSONRPCPeer(JSONConfigurable):
@@ -209,11 +197,9 @@ class JSONRPCPeer(JSONConfigurable):
         # JSON configuration initialisation
         super().__init__(*args, **kwargs)
 
-        policy = asyncio.get_event_loop_policy()
-        policy.set_event_loop(policy.new_event_loop())
-
         self.loop = asyncio.get_event_loop()
-        self.result_q = asyncio.Queue(loop=self.loop)
+
+        self.result_q = asyncio.Queue()
         self.dsp = jsonrpc.Dispatcher()
         self.add_rpc_methods()
 
@@ -231,27 +217,20 @@ class JSONRPCPeer(JSONConfigurable):
             self.dsp.add_method(fn, name=name)
 
     def startup(self):
-        """Subclasses must define this function"""
+        """
+        To be run before entering infinite event loop.
+
+        Subclasses must define functionality
+        """
         raise NotImplementedError
 
     def shutdown(self):
-        """Subclasses must define this function"""
+        """
+        To be run after exiting infinite loop.
+
+        Subclasses must define functionality
+        """
         raise NotImplementedError
-
-    def run(self):
-        """Normal operation function, runs infinitely"""
-        self.startup()
-
-        try:
-            print("entering main loop")
-            self.loop.run_forever()
-        except KeyboardInterrupt:
-            print("received keyboard interrupt")
-        except Exception as e:
-            print(e)
-        finally:
-            print("exiting")
-            self.shutdown()
 
     def cancel_pending_tasks(self):
         """Cancel pending loop tasks explicitly"""
@@ -264,8 +243,8 @@ class JSONRPCPeer(JSONConfigurable):
     def request(self, *args, **kwargs):
         self.loop.create_task(self._request(*args, **kwargs))
 
-    def notification(self, *args, **kwargs):
-        self.loop.create_task(self._notification(*args, **kwargs))
+    def notify(self, *args, **kwargs):
+        self.loop.create_task(self._notify(*args, **kwargs))
 
     def handle_rpc(self, conn, obj):
         """
@@ -289,9 +268,9 @@ class JSONRPCPeer(JSONConfigurable):
 
         await conn.request(method, id, params)
 
-    async def _notification(self, conn, method, params=None):
+    async def _notify(self, conn, method, params=None):
         """Send a notification over the connection"""
-        await conn.notification(method, params)
+        await conn.notify(method, params)
 
     async def _request_handler(self, conn, obj):
         """
@@ -326,11 +305,12 @@ class JSONRPCPeer(JSONConfigurable):
 
     def _error_handler(self, error):
         """Log errors"""
-        print("called error_handler with {}".format(result))
+        print("called error_handler with {}".format(error))
 
     def _result_handler(self, result):
         """Default to logging successes"""
-        print("called result_handler with {}".format(result))
+        pass
+        # print("called result_handler with {}".format(result))
 
     @property
     def next_id(self):
@@ -357,12 +337,19 @@ class JSONRPCConnection(object):
         self.writer = writer
         self.addr = writer.get_extra_info('peername')
 
+    def close(self):
+        self.writer.close()
+        self.writer = None
+        self.reader = None
+        self.handler = None
+        self.addr = None
+
     async def request(self, method, id, params=None):
         """Make an RPC request"""
         request = {'jsonrpc':'2.0', 'id':id, 'method':method, 'params':params}
         await self.send_object(request)
 
-    async def notification(self, method, params=None):
+    async def notify(self, method, params=None):
         """Send a notification"""
         notification = {'jsonrpc':'2.0', 'method':method, 'params':params}
         await self.send_object(notification)
@@ -410,7 +397,12 @@ class JSONStreamIterator(object):
     async def _fetch_object(self):
         obj = None
         while not obj:
-            data = await self.reader.read(100)
+            try:
+                data = await self.reader.read(100)
+            except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError) as e:
+                # print("got a connection error")
+                data = None
+
             if data:
                 msg = data.decode()
                 message = self.buffer + msg
@@ -423,7 +415,7 @@ class JSONStreamIterator(object):
                     # Store whatever is left in the buffer
                     self.buffer = message[end:]
             else:
-                # EOF sent by writer, acknowledge and exit
+                # EOF or error
                 self.reader.feed_eof()
                 return None
         return obj

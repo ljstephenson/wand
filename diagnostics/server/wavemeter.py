@@ -3,7 +3,7 @@ Wavemeter interface
 """
 import ctypes
 import asyncio
-from enum import Enum
+import enum
 
 __all__ = ['WavemeterError',
            'WavemeterTask',
@@ -15,7 +15,8 @@ __all__ = ['WavemeterError',
 # Constants
 #
 # (Should be able to get these from the DLL, but had some difficulties)
-class WavemeterError(Enum):
+@enum.unique()
+class WavemeterError(enum.Enum):
     """
     Values returned on error from GetFrequencyNum
     """

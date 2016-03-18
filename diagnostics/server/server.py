@@ -6,28 +6,26 @@ import asyncio
 import json
 import jsonrpc
 import collections
-
-from PyDAQmx.DAQmxFunctions import DAQError
-
-import diagnostics.server.osa as osa
-import diagnostics.server.wavemeter as wavemeter
-import diagnostics.server.channel as channel
-import diagnostics.common as common
+import weakref
 
 # don't actually do anything with wavemeter/osa
 TEST=True
 if TEST:
     import random
+    DAQError = Exception
+else:
+    from PyDAQmx.DAQmxFunctions import DAQError
+    import diagnostics.server.osa as osa
+    import diagnostics.server.wavemeter as wavemeter
+
+import diagnostics.common as common
+from diagnostics.server.channel import ServerChannel as Channel
+
 
 # Normal switching interval in seconds
 INTERVAL=1
-# Lock duration in seconds
-LOCK=300
 
-# TODO: should read filename from command line args when starting
-CFG_FILE = "./cfg/oldlab_server.json"
-
-
+DEFAULT_CFG_FILE = "./cfg/oldlab_server.json"
 
 class Server(common.JSONRPCPeer):
     """
@@ -40,24 +38,19 @@ class Server(common.JSONRPCPeer):
                 ('address', None),
                 ('port', None),
                 ('switcher', None),
-                ('channels', channel.ServerChannel),
+                ('channels', Channel),
             ])
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Now initialised/called by superclass:
-        #     self.loop = asyncio.get_event_loop()
-        #     self.dsp = jsonrpc.Dispatcher()
-        #     self.add_rpc_methods()
 
         # Generator for cycling through configured channels infinitely
         self.ch_gen = itertools.cycle(self.channels)
 
-        self.clients = {}
+        self.clients = weakref.WeakValueDictionary()
         self.connections = {}
 
-        # maxsize is temporary for the time being
-        self.data_q = asyncio.Queue(maxsize=1000, loop=self.loop)
+        self.data_q = asyncio.Queue()
 
         self.tcp_server = None
         self.locked = False
@@ -70,12 +63,8 @@ class Server(common.JSONRPCPeer):
         self.wtask = None
 
     def startup(self):
-        # TODO: Put this somewhere more sensible (main?)
-        if not TEST:
-            wavemeter.init()
-
         # Start the TCP server
-        coro = asyncio.start_server(self.client_connected, self.address, self.port, loop=self.loop)
+        coro = asyncio.start_server(self.client_connected, self.address, self.port)
         self.tcp_server = self.loop.run_until_complete(coro)
         # Schedule switching and store the task
         self.next_switch = self.loop.call_soon(self.switch)
@@ -87,7 +76,6 @@ class Server(common.JSONRPCPeer):
         self.close_connections()
         self.tcp_server.close()
         self.loop.run_until_complete(self.tcp_server.wait_closed())
-        self.loop.close()
 
     # -------------------------------------------------------------------------
     # Network operations
@@ -96,21 +84,27 @@ class Server(common.JSONRPCPeer):
         # Store the client reader and writer objects under the address
         # and start the listening coroutine
         conn = common.JSONRPCConnection(self.handle_rpc, reader, writer)
-        self.loop.create_task(conn.listen())
+        future = self.loop.create_task(conn.listen())
 
         def register_connection(result):
             print("Registered connection of {}".format(result))
             self.clients[result] = conn
-
-        # Get the name of the client
         self.request(conn, 'get_name', cb=register_connection)
 
         addr = writer.get_extra_info('peername')
-        print("Registered connection of {}".format(addr))
         self.connections[addr] = conn
 
+        def client_disconnected(future):
+            # Just removing connection from connections should be enough -
+            # all the other references are weak
+            conn = self.connections.pop(addr)
+            conn.close()
+            del conn
+        future.add_done_callback(client_disconnected)
+
     def close_connections(self):
-        for conn in self.connections.values():
+        while self.connections:
+            (_, conn) = self.connections.popitem()
             conn.close()
 
     # -------------------------------------------------------------------------
@@ -147,11 +141,7 @@ class Server(common.JSONRPCPeer):
 
         # Schedule the next switch
         if not self.locked:
-            delay = INTERVAL
-        else:
-            delay = LOCK
-            self.locked = False
-        self.next_switch = self.loop.call_later(delay, self.switch)
+            self.next_switch = self.loop.call_later(INTERVAL, self.switch)
 
     # -------------------------------------------------------------------------
     # RPC methods
@@ -164,48 +154,107 @@ class Server(common.JSONRPCPeer):
     #
     def rpc_lock(self, channel):
         """
-        Switches to named channel and delays the next switch.
-
-        (so less of a lock and more of a hold, but never mind)
+        Switches to named channel indefinitely
         """
-        self.loop.call_soon_threadsafe(self.next_switch.cancel)
+        if self.next_switch:
+            self.loop.call_soon(self.next_switch.cancel)
         self.locked = True
         self.loop.call_soon(self.switch, channel)
+        self.loop.call_soon(self.notify_locked, channel)
 
     def rpc_unlock(self):
         """Resume normal switching"""
-        self.loop.call_soon_threadsafe(self.next_switch.cancel)
         self.locked = False
-        self.loop.call_soon(self.switch)
+        self.next_switch = self.loop.call_soon(self.switch)
+        self.loop.call_soon(self.notify_unlocked)
 
     def rpc_get_name(self):
         return self.name
 
-    def rpc_add_channels(self, client, channels):
+    def rpc_register_client(self, client, channels):
         """
         Add the client to the send list for the list of channels
         """
         conn = self.clients.get(client)
-        for ch in channels:
-            self.channels[ch].add_client(client, conn)
+        result = {}
+        for c in channels:
+            self.channels[c].add_client(client, conn)
+            result[c] = self.channels[c].to_json(separators=(',', ':'))
+        return result
 
-    def rpc_remove_channels(self, client, channels):
-        for ch in channels:
-            self.channels[ch].remove_client(client)
+    def rpc_unregister_client(self, client):
+        pass
+
+    def rpc_configure_channel(self, channel, cfg):
+        c = self.channels.get(channel)
+        if c is not None:
+            c.from_dict(cfg)
+            self.loop.call_soon(self.notify_refresh_channel, channel)
+
+    def rpc_echo_channel_config(self, channel):
+        return self.channels[channel].to_json()
+
+    def rpc_save_channel_settings(self, channel):
+        """Save the currently stored channel config to file"""
+        # Get channel settings
+        cfg = self.channels[channel].to_dict()
+        update = {'channels':{channel:cfg}}
+
+        # Store running config so that not all channels are saved
+        running = self.to_dict()
+
+        # Load file into running (from_file defaults to the last used)
+        self.from_file()
+
+        # Update with channel to save and then save file
+        self.from_dict(update)
+        self.to_file()
+
+        # Restore running config
+        self.from_dict(running)
+
+    def rpc_save_all(self):
+        pass
 
     def rpc_echo(self, s):
         return s
 
     # -------------------------------------------------------------------------
-    # Helper functions
-    #
-    def data2notification(self, data):
-        """Convert data from sources into an rpc notification payload"""
-        notification = {'jsonrpc':"2.0"}
-        notification['method'] = data['source']
-        notification['params'] = {k:v for k,v in data.items() if k != 'source'}
+    # Notifications to clients
+    def notify_locked(self, channel):
+        method = "locked"
+        params = {"server":self.name, "channel":channel}
+        self._notify_all(method, params)
 
-        return notification
+    def notify_unlocked(self):
+        method = "unlocked"
+        params = {"server":self.name}
+        self._notify_all(method, params)
+
+    def notify_refresh_channel(self, channel):
+        c = self.channels.get(channel)
+        method = "refresh_channel"
+        params = {"channel":channel, "cfg":c.to_json()}
+        self._notify_channel(channel, method, params)
+
+    # -------------------------------------------------------------------------
+    # Helper functions for channel/client requests
+    #
+    def _notify_client(self, client, *args, **kwargs):
+        pass
+
+    def _notify_channel(self, channel, *args, **kwargs):
+        c = self.channels.get(channel)
+        # print("\nNotify channel: {} args: {} kwargs: {}".format(channel, args, kwargs))
+        for conn in c.clients.values(): 
+            self.loop.create_task(conn.notify(*args, **kwargs))
+
+    def _notify_all(self, *args, **kwargs):
+        print("\nNotify all: args: {} kwargs: {}".format(args, kwargs))
+        for conn in self.connections.values():
+            self.loop.create_task(conn.notify(*args, **kwargs))
+        #for conn in self.clients.values()
+        #    conn.notify(*args, **kwargs)
 
     # -------------------------------------------------------------------------
     # Data consumption
@@ -217,22 +266,21 @@ class Server(common.JSONRPCPeer):
             if data['source'] == 'wavemeter':
                 # logic for logging
                 pass
-            self.loop.call_soon(self.basic_send_data, data)
+            self.loop.call_soon(self.send_data, data)
+            #self.loop.call_soon(self.basic_send_data, data)
 
     def basic_send_data(self, data):
         """Sends data to all clients indiscriminately"""
-        notification = self.data2notification(data)
-
-        for conn in self.connections.values():
-            self.loop.create_task(conn.send_object(notification))
+        method = data['source']
+        params = {k:v for k,v in data.items() if k != 'source'}
+        self._notify_all(method, params)
 
     def send_data(self, data):
         """Send the data to the appropriate clients only"""
-        channel = self.channels.get(data['channel'])
-        notification = self.data2notification(data)
-
-        for conn in channel.clients.values():
-            self.loop.create_task(conn.send_object(notification))
+        channel = data['channel']
+        method = data['source']
+        params = {k:v for k,v in data.items() if k != 'source'}
+        self._notify_channel(channel, method, params)
 
     # -------------------------------------------------------------------------
     # OSA and Wavemeter task operations
@@ -270,9 +318,6 @@ class Server(common.JSONRPCPeer):
     # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! #
     # Dirty and nasty hacks
     #
-    def state(self):
-        """Return the running state as a string"""
-
     def dummy_osa(self, channel):
         data_length = 10
         data = [random.randint(0, 65535) for _ in range(data_length)]
@@ -280,6 +325,7 @@ class Server(common.JSONRPCPeer):
             {'source':'osa', 'channel':channel, 'time':self.loop.time(), 'data':data} ))
 
     def dummy_wavemeter(self, channel):
-        frequency = random.randint(100, 200)
+        c = self.channels.get(channel)
+        frequency = random.choice([(c.reference-750+random.randint(0, 1500)), -4, -3])
         self.loop.create_task(self.data_q.put(
             {'source':'wavemeter', 'channel':channel, 'time':self.loop.time(), 'data':frequency} ))

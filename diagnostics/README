@@ -19,6 +19,7 @@ Client:
     $ conda create -n <name> python=3.5 pyqt pyqtgraph numpy
     $ activate <name>
     $ pip install --upgrade https://github.com/pavlov99/json-rpc/zipball/master
+    $ pip install quamash
 
 
 ~~~~~

@@ -2,11 +2,13 @@
 Client for laser diagnostic operations
 """
 import asyncio
-import numpy
 import collections
-import threading
+import weakref
+import numpy as np
+import sys
 
 import diagnostics.common as common
+from diagnostics.client.channel import ClientChannel
 
 # TODO: should read filename from command line args
 CFG_FILE = "./cfg/oldlab_client.json"
@@ -20,93 +22,211 @@ class ClientBackend(common.JSONRPCPeer):
                 ('servers', None),
             ])
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, cls, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Now initialised/called by superclass:
-        #     self.loop = asyncio.get_event_loop()
-        #     self.dsp = jsonrpc.Dispatcher()
-        #     self.add_rpc_methods()
 
-        self.channels = {}
+        self.conns_by_s = {}
+        self.conns_by_c = weakref.WeakValueDictionary()
+        self.channels = collections.OrderedDict()
+
+        if cls is None:
+            cls = ClientChannel
+
+        for s in self.servers.values():
+            channels = s.get('channels', [])
+            for c in channels:
+                self.channels[c] = cls(self, cfg={'name':c})
 
     def startup(self):
         """Place all startup methods here"""
         for s in self.servers:
-            self.loop.create_task(self.server_connect(s))
+            self.loop.run_until_complete(self.server_connect(s))
 
-        self.loop.call_later(60, self.kbstop)
 
     def shutdown(self):
         """Place all shutdown methods here"""
         self.cancel_pending_tasks()
         self.close_connections()
-        self.loop.close()
 
     # -------------------------------------------------------------------------
     # Network operations
     #
     async def server_connect(self, server):
         """Connect to the named server"""
+        def closure(future):
+            """Simple closure so that we can tell which server disconnected"""
+            self.server_disconnected(server)
+
         s = self.servers[server]
         try:
-            reader, writer = await asyncio.open_connection(s['address'], s['port'], loop=self.loop)
+            reader, writer = await asyncio.open_connection(s['address'], s['port'])
         except ConnectionRefusedError as e:
             print("connection failed: TODO: try again later")
+        except Exception as e:
+            print(e)
+        except:
+            print("woah! something really weird going on")
         else:
             conn = common.JSONRPCConnection(self.handle_rpc, reader, writer)
-            self.loop.create_task(conn.listen())
-            s['connection'] = conn
             print("Opened connections to {}".format(server))
 
+            self.conns_by_s[server] = conn
+
+            channels = s.get('channels', [])
+            for c in channels:
+                self.conns_by_c[c] = conn
+                
+            future = self.loop.create_task(conn.listen())
+            future.add_done_callback(closure)
+
+        self.loop.call_soon(self.request_register_client, server)
+
+    def server_disconnected(self, server):
+        """Called when server disconnects"""
+        print("Server {} disconnected".format(server))
+        conn = self.conns_by_s.pop(server)
+        conn.close()
+        del conn
+
     def close_connections(self):
-        for s in self.servers.values():
-            s['connection'].close()
+        while self.conns_by_s:
+            (_, conn) = self.conns_by_s.popitem()
+            conn.close()
+            del conn
 
     # -------------------------------------------------------------------------
-    # temporary
-    #
-    def tmp_add_request(self):
-        self.loop.create_task(self.request(self.writer, "get_name", cb=self.tmp_process))
-
-    def echo(self, msg):
-        print(msg)
-
-    def kbstop(self):
-        raise KeyboardInterrupt
-
-    # -------------------------------------------------------------------------
-    # RPC methods
+    # RPC methods implemented by this class
     #
     # Prefix RPC methods with `rpc_`. This prefix is stripped before adding
     # to the dispatcher
     #
     def rpc_get_name(self):
-        print("called get_name")
+        # print("called get_name")
         return self.name
 
     def rpc_osa(self, channel, time, data):
-        print("OSA notification: {}".format([channel, time, data]))
+        # print("OSA notification: {}".format([channel, time, data]))
+        c = self.channels.get(channel)
+        if c is not None:
+            c.osa = np.asarray(data)
 
     def rpc_wavemeter(self, channel, time, data):
-        print("Wavemeter notification: {}".format([channel, time, data]))
+        c = self.channels.get(channel)
+        if c is not None:
+            c.frequency = data
+
+    def rpc_refresh_channel(self, channel, cfg):
+        """Called by the server when another client updates config"""
+        c = self.channels.get(channel)
+        if c is not None:
+            c.from_json(cfg)
+
+    def rpc_locked(self, server, channel):
+        # Show locking of stated channel and clear all others associated with
+        # this server
+        locked = self.channels.get(channel)
+        if locked:
+            # Locked channel may not be shown on this client at all
+            locked.lock()
+
+        channels = self.servers.get(server).get('channels')
+        unlocked = [self.channels.get(c) for c in channels if c != channel]
+        for c in unlocked:
+            c.unlock()
+
+
+    def rpc_unlocked(self, server):
+        channels = self.servers.get(server).get('channels')
+        unlocked = [self.channels.get(c) for c in channels]
+        for c in unlocked:
+            c.unlock()
+
 
     # -------------------------------------------------------------------------
-    # Server requests
+    # Requests for RPC
     #
-    def request_channels(self, server):
-        """Request the configured channels from the server"""
+    # Could do fancy things like overriding getattr to make proxies and so on,
+    # but it's clearer to make each request explicitly a request and have the
+    # the slight awkwardness of typing out the method name and expected
+    # parameter lists here
+    #
+    # This also provides a convenient place to define a callback on the result
+    # of the RPC
+    #
+    def request_echo_channel_config(self, channel):
+        method = "echo_channel_config"
+        params = {"channel":channel}
+        self._channel_request(channel, method, params)
 
-    def configure_channel(self, channel, cfg):
-        """Send a request to change channel config to the appropriate server"""
+    def request_lock(self, channel):
+        method = "lock"
+        params = {"channel":channel}
+        self._channel_request(channel, method, params)
+
+    def request_unlock(self, channel):
+        method = "unlock"
+        params = {}
+        self._channel_request(channel, method, params)
+
+    def request_configure_channel(self, channel, cfg):
         method = "configure_channel"
         params = {"channel":channel, "cfg":cfg}
-        conn = channel.server
+        self._channel_request(channel, method, params)
 
-        self.request(conn, method, params)
+    def request_save_channel_settings(self, channel):
+        method = "save_channel_settings"
+        params = {"channel":channel}
+        self._channel_request(channel, method, params)
+
+    # -------------------------------------------------------------------------
+    # Requests by server
+    #
+    def request_register_client(self, server):
+        """Request the configured channels from the server"""
+        def update_channels(result):
+            for c, cfg in result.items():
+                self.channels[c].from_json(cfg)
+        s = self.servers.get(server, {})
+        method = "register_client"
+        params = {"client":self.name, "channels":s.get('channels', [])}
+        self._server_request(server, method, params, cb=update_channels)
+
+    # -------------------------------------------------------------------------
+    # Helpers for channel/server requests
+    #
+    def _channel_request(self, channel, *args, **kwargs):
+        conn = self.conns_by_c[channel]
+        self.request(conn, *args, **kwargs)
+
+    def _channel_notify(self, channel, *args, **kwargs):
+        conn = self.conns_by_c[channel]
+        self.notify(conn, *args, **kwargs)
+
+    def _server_request(self, server, *args, **kwargs):
+        conn = self.conns_by_s[server]
+        self.request(conn, *args, **kwargs)
 
 
-class ClientBackendThread(threading.Thread):
-    def run(self):
-        self.cl = ClientBackend(fname=CFG_FILE)
-        self.cl.run()
+    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    # temporary nasty hacks
+    #
+    def tmp_add_request(self):
+        for s in self.servers.values():
+            conn = s.get('connection')
+            if conn:
+                self.request(conn, "get_name")
 
+    def tmp_exit(self):
+        print("system exit")
+        sys.exit()
+
+    async def tmp_sleep(self):
+        await asyncio.sleep(5.1)
+        print("Slept for 5.1 seconds")
+
+    def echo(self, msg):
+        print(msg)
+
+    def kbstop(self):
+        print("kbstop")
+        raise KeyboardInterrupt

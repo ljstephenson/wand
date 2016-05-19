@@ -9,7 +9,7 @@ import collections
 import weakref
 
 # don't actually do anything with wavemeter/osa
-TEST=True
+TEST=False
 if TEST:
     import random
     DAQError = Exception
@@ -39,7 +39,16 @@ class Server(common.JSONRPCPeer):
                 ('port', None),
                 ('switcher', None),
                 ('channels', Channel),
+                ('fast', None),
+                ('pause', None),
             ])
+
+    @property
+    def interval(self):
+        if self.fast:
+            return 0.5
+        else:
+            return 1
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -110,7 +119,7 @@ class Server(common.JSONRPCPeer):
     # -------------------------------------------------------------------------
     # Switching
     #
-    def switch(self, ch_name=None):
+    def switch(self, channel=None):
         """Switch to the NAMED channel"""
         self.next_switch = None
 
@@ -119,29 +128,29 @@ class Server(common.JSONRPCPeer):
             self.cancel_tasks()
 
         # Get the next channel in sequence if none supplied
-        if ch_name is None:
-            ch_name = next(self.ch_gen)
-        channel = self.channels[ch_name]
-        print("!", end='', flush=True)
+        if channel is None:
+            channel = next(self.ch_gen)
+        c = self.channels[channel]
+        #print("!", end='', flush=True)
 
         # Switch the switcher, wherever it's located
         if self.switcher['name'] == "wavemeter":
             if not TEST:
-                wavemeter.switch(channel.number)
+                wavemeter.switch(c.number)
         else:
             # do the switching
             pass
 
         if not TEST:
-            self.new_tasks(channel)
+            self.new_tasks(c)
             self.start_tasks()
         else:
-            self.dummy_osa(ch_name)
-            self.dummy_wavemeter(ch_name)
+            self.dummy_osa(channel)
+            self.dummy_wavemeter(channel)
 
         # Schedule the next switch
         if not self.locked:
-            self.next_switch = self.loop.call_later(INTERVAL, self.switch)
+            self.next_switch = self.loop.call_later(self.interval, self.switch)
 
     # -------------------------------------------------------------------------
     # RPC methods
@@ -158,7 +167,7 @@ class Server(common.JSONRPCPeer):
         """
         if self.next_switch:
             self.loop.call_soon(self.next_switch.cancel)
-        self.locked = True
+        self.locked = channel
         self.loop.call_soon(self.switch, channel)
         self.loop.call_soon(self.notify_locked, channel)
 
@@ -167,6 +176,19 @@ class Server(common.JSONRPCPeer):
         self.locked = False
         self.next_switch = self.loop.call_soon(self.switch)
         self.loop.call_soon(self.notify_unlocked)
+
+    def rpc_pause(self, pause=True):
+        if pause:
+            if self.next_switch:
+                self.loop.call_soon(self.next_switch.cancel)
+            self.cancel_tasks()
+        else:
+            # Resume
+            if self.locked:
+                self.loop.call_soon(self.switch, self.locked)
+            else:
+                self.loop.call_soon(self.switch)
+        self.pause = pause
 
     def rpc_get_name(self):
         return self.name
@@ -214,7 +236,12 @@ class Server(common.JSONRPCPeer):
         self.from_dict(running)
 
     def rpc_save_all(self):
-        pass
+        self.to_file()
+
+    def rpc_configure_server(self, cfg):
+        # Only allow updates to acquisition mode, update speed and pause
+        cfg = {k:v for k,v in cfg.items if k in ['mode', 'fast', 'pause']}
+        self.from_dict(cfg)
 
     def rpc_echo(self, s):
         return s
@@ -245,12 +272,12 @@ class Server(common.JSONRPCPeer):
 
     def _notify_channel(self, channel, *args, **kwargs):
         c = self.channels.get(channel)
-        # print("\nNotify channel: {} args: {} kwargs: {}".format(channel, args, kwargs))
+        #print("\nNotify channel: {} args: {} kwargs: {}".format(channel, args, kwargs))
         for conn in c.clients.values(): 
             self.loop.create_task(conn.notify(*args, **kwargs))
 
     def _notify_all(self, *args, **kwargs):
-        print("\nNotify all: args: {} kwargs: {}".format(args, kwargs))
+        #print("\nNotify all: args: {} kwargs: {}".format(args, kwargs))
         for conn in self.connections.values():
             self.loop.create_task(conn.notify(*args, **kwargs))
         #for conn in self.clients.values()

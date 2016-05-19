@@ -17,14 +17,13 @@ NO_OPTIONS = 0
 # Parameters for data acquisition
 SAMPLES = 16000
 RATE = 1.25e6
-TIMEOUT = 10.0
+TIMEOUT = 0.5
 MIN_V = -1.0
 MAX_V = 1.0
 AI_BLUE = b'/Dev1/ai0'
 AI_RED = b'/Dev1/ai1'
 TRIG_CHANNEL= b'/Dev1/PFI0'
 
-INTERVAL = 0.2
 
 class OSATask(PyDAQmx.Task):
     """
@@ -34,11 +33,12 @@ class OSATask(PyDAQmx.Task):
         Set up the Task in the DAQ card ready for use
         """
         super().__init__()
+
         self.loop = loop
         self.queue = queue
         self.channel = channel
     
-        # Blue/Read lasers require using different etalons, so have different
+        # Blue/Red lasers require using different etalons, so have different
         # analog inputs to the DAQ card
         if self.channel.blue == True:
             AI = AI_BLUE
@@ -71,12 +71,16 @@ class OSATask(PyDAQmx.Task):
         data = numpy.zeros(SAMPLES)
         _read = numpy.int32()
         # read_p = ctypes.pointer(numpy.ctypeslib.as_ctypes(_read))
-        self.ReadAnalogF64(SAMPLES, TIMEOUT, PyDAQmx.DAQmx_Val_GroupByScanNumber, data,
-                           SAMPLES, ctypes.byref(numpy.ctypeslib.as_ctypes(_read)), None)
+        try:
+            self.ReadAnalogF64(SAMPLES, TIMEOUT, PyDAQmx.DAQmx_Val_GroupByScanNumber, data,
+                            SAMPLES, ctypes.byref(numpy.ctypeslib.as_ctypes(_read)), None)
+        except Exception as e:
+            print("DAQMX READ FAILED")
+            print(e)
         t = self.loop.time()
 
         # data is hacked down to shorten while testing
-        d = {'source':'osa', 'channel':self.channel.name, 'time':t, 'data':data.tolist()[:10]}
+        d = {'source':'osa', 'channel':self.channel.name, 'time':t, 'data':data.tolist()}
     
         if not self.loop.is_closed():
             self.loop.create_task(self.queue.put(d))

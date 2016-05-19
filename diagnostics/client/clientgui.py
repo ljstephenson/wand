@@ -7,13 +7,10 @@ import functools
 from diagnostics.client.client import ClientBackend
 from diagnostics.client.channel import ClientChannel
 
+import time
 
 class GUIChannel(ClientChannel):
     def __init__(self, *args, **kwargs):
-        # Choose 'pg' or 'Qt' depending on implementation. 'pg' appears not to
-        # display decimal places correctly, but 'Qt' has issues when using
-        # the scroll wheel...
-        self._spins = 'Qt'
 
         # GUI items must be initialised before values are set in super() call
         self._gui_init()
@@ -35,7 +32,7 @@ class GUIChannel(ClientChannel):
         self._layout.addWidget(self._plot, colspan=3)
 
         self._detuning = pg.LabelItem("")
-        self._detuning.setText("Detuning", size="48pt")
+        self._detuning.setText("Detuning", size="64pt")
         self._frequency = pg.LabelItem("")
         self._frequency.setText("Frequency", size="8pt")
         self._name = pg.LabelItem("")
@@ -51,22 +48,16 @@ class GUIChannel(ClientChannel):
         self._plot.nextRow()
         self._plot.addItem(self._name)
 
-        if self._spins == 'Qt':
-            # Using QSpinBox and QDoubleSpinBox for exposure and reference
-            self._exposure = QtGui.QSpinBox()
-            self._exposure.setRange(0, 100)
-            self._exposure.setSuffix(" ms")
-            self._exposure.setGeometry(box_size)
+        self._exposure = QtGui.QSpinBox()
+        self._exposure.setRange(0, 100)
+        self._exposure.setSuffix(" ms")
+        self._exposure.setGeometry(box_size)
 
-            self._reference = QtGui.QDoubleSpinBox()
-            self._reference.setRange(0.0, 1000000.0)
-            self._reference.setDecimals(4)
-            self._reference.setSuffix(" THz")
-            self._reference.setGeometry(box_size)
-        elif self._spins == 'pg':
-            # Use pyqtgraph's spin boxes
-            self._exposure = pg.SpinBox(int=True, step=1, bounds=(0,100), suffix=" ms")
-            self._reference = pg.SpinBox(step=1, bounds=(0.0,10000000.0), decimals=6, suffix=" THz")
+        self._reference = QtGui.QDoubleSpinBox()
+        self._reference.setRange(0.0, 1000000.0)
+        self._reference.setDecimals(5)
+        self._reference.setSuffix(" THz")
+        self._reference.setGeometry(box_size)
 
         self._lock = QtGui.QPushButton("Lock Switcher")
         self._lock.setCheckable(True)
@@ -82,33 +73,27 @@ class GUIChannel(ClientChannel):
         self._layout.addWidget(self._reference, col=1)
         self._layout.addWidget(self._exposure, col=2)
 
+    # -------------------------------------------------------------------------
+    # Callbacks
+    #
     def _connect_callbacks(self):
         self._lock.clicked.connect(self.toggle_lock)
         self._save.clicked.connect(self.save)
+        self._reference.valueChanged.connect(self.ref)
+        self._exposure.valueChanged.connect(self.exp)
 
-        if self._spins == 'Qt':
-            # QSpinBox implementation
-            # Note that the value changed callbacks check that the new value is
-            # different from the stored value - this mean that only user inputs
-            # trigger communications with the server.
-            # Previously whenever the server updated the client, the client
-            # would trigger a new notification with the new value
-            def ref(val):
-                if val != self._ref:
-                    self.client.request_configure_channel(self.name, cfg={'reference':val})
-            def exp(val):
-                if val != self._exp:
-                    self.client.request_configure_channel(self.name, cfg={'exposure':val})
-            self._reference.valueChanged.connect(ref)
-            self._exposure.valueChanged.connect(exp)
-        elif self._spins == 'pg':
-            # pg.SpinBox implementation
-            def ref(spin):
-                self.client.request_configure_channel(self.name, cfg={'reference':spin.value()})
-            def exp(spin):
-                self.client.request_configure_channel(self.name, cfg={'exposure':spin.value()})
-            self._reference.sigValueChanged.connect(ref)
-            self._exposure.sigValueChanged.connect(exp)
+
+    # Note that the value changed callbacks check that the new value is
+    # different from the stored value - this mean that only user inputs
+    # trigger communications with the server.
+    # Previously whenever the server updated the client, the client
+    # would trigger a new notification with the new value, which would loop
+    def ref(self, val):
+        if val != self._ref:
+            self.client.request_configure_channel(self.name, cfg={'reference':val})
+    def exp(self, val):
+        if val != self._exp:
+            self.client.request_configure_channel(self.name, cfg={'exposure':val})
 
     def save(self):
         self.client.request_save_channel_settings(self.name)
@@ -121,6 +106,9 @@ class GUIChannel(ClientChannel):
             self.client.request_unlock(self.name)
             self._lock.setText("Lock Switcher")
 
+    # -------------------------------------------------------------------------
+    # Switcher locked/unlocked
+    #
     def lock(self):
         """Called when channel is locked by another client"""
         if not self._lock.isChecked():
@@ -133,6 +121,9 @@ class GUIChannel(ClientChannel):
             self._lock.toggle()
             self._lock.setText("Lock Switcher")
 
+    # -------------------------------------------------------------------------
+    # Properties
+    #
     @property
     def name(self):
         return self._n
@@ -197,10 +188,11 @@ class GUIChannel(ClientChannel):
             val = 0
             error = "Other Error"
         self._f = val
-        self._frequency.setText("{}".format(val))
+        self._frequency.setText("{:.7f}".format(val))
 
         if not error:
-            self._detuning.setText("{}".format(self.detuning), color="ffffff")
+            # Detuning in MHz not THz
+            self._detuning.setText("{:.1f}".format(self.detuning*1e6), color="ffffff")
         else:
             self._detuning.setText("{}".format(error), color="ff9900")
 
@@ -221,12 +213,7 @@ class GUIChannel(ClientChannel):
     @blue.setter
     def blue(self, val):
         self._blue = val
-
-        for label in [self._name, self._detuning]:
-            label.setAttr('color', self.color)
-
-        # setAttr needs an update to take effect
-        self.name = self.name
+        self._name.setText(self.name, color=self.color)
 
     @property
     def dock(self):

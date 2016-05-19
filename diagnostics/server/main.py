@@ -4,7 +4,7 @@ import asyncio
 
 import diagnostics.server.server as server
 
-#import diagnostics.server.wavemeter as wavemeter
+import diagnostics.server.wavemeter as wavemeter
 
 def parse_args(argv):
     parser = argparse.ArgumentParser()
@@ -15,7 +15,7 @@ def parse_args(argv):
 def main(argv):
     args = parse_args(argv)
 
-    #wavemeter.init()
+    wavemeter.init()
 
     loop = asyncio.get_event_loop()
 
@@ -23,6 +23,7 @@ def main(argv):
     s.startup()
 
     try:
+        print("**Server Ready**")
         loop.run_forever()
     except KeyboardInterrupt as e:  
         print("\n**KeyboardInterupt**")

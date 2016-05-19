@@ -7,6 +7,8 @@ import asyncio
 import json
 import jsonrpc
 
+import time
+
 __all__ = ['Channel',
            'JSONRPCPeer',
            'JSONRPCConnection',
@@ -78,7 +80,7 @@ class JSONConfigurable(object):
         """Print configuration to a file"""
         # Default to pretty printing with indent
         if kwargs == {}:
-            kwargs = {'indent':4, 'separators':(',', ': ')}
+            kwargs = {'indent':4, 'separators':(',', ':')}
 
         if fname is not None:
             self.filename = fname
@@ -362,14 +364,19 @@ class JSONRPCConnection(object):
     async def send(self, msg):
         """Send a string without checking if it's valid JSON"""
         # print("{}--> {}".format(self.addr, msg))
-        self.writer.write(msg.encode())
-        await self.writer.drain()
+        # Need to protect against connection being closed before the send
+        if self.writer is not None:
+            self.writer.write(msg.encode())
+            # await self.writer.drain()
 
     async def listen(self):
         """Listens for JSON and calls the handler"""
+        t = time.time()
         async for obj in JSONStreamIterator(self.reader):
             # print("{}<-- {}".format(self.addr, json.dumps(obj)))
             self.handler(self, obj)
+            print("<-- {}s".format(time.time()-t))
+            t = time.time()
 
 
 class JSONStreamIterator(object):
@@ -396,9 +403,12 @@ class JSONStreamIterator(object):
 
     async def _fetch_object(self):
         obj = None
+        r = 0.0
         while not obj:
             try:
-                data = await self.reader.read(100)
+                t = time.time()
+                data = await self.reader.read(2**15)
+                r += time.time()-t
             except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError) as e:
                 # print("got a connection error")
                 data = None
@@ -418,4 +428,5 @@ class JSONStreamIterator(object):
                 # EOF or error
                 self.reader.feed_eof()
                 return None
+        print("Read: {}s".format(r))
         return obj

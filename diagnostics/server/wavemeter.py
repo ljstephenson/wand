@@ -15,7 +15,7 @@ __all__ = ['WavemeterError',
 # Constants
 #
 # (Should be able to get these from the DLL, but had some difficulties)
-@enum.unique()
+@enum.unique
 class WavemeterError(enum.Enum):
     """
     Values returned on error from GetFrequencyNum
@@ -46,14 +46,15 @@ cMeasurement = ctypes.c_ushort(2)
 cCtrlMeasurementTriggerSuccess = 3
 # -----------------------------------------------------------------------------
 
-
-# Open the DLL
-lib = ctypes.WinDLL('C:\Windows\system32\wlmData.dll')
-
 def init():
     """
     Initialise the wavemeter
     """
+    global lib
+
+    # Open the DLL
+    lib = ctypes.WinDLL('C:\Windows\system32\wlmData.dll')
+
     lib.GetFrequencyNum.restype = ctypes.c_double
     lib.Instantiate.restype = ctypes.c_long
 

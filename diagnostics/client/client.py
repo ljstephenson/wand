@@ -80,7 +80,9 @@ class ClientBackend(common.JSONRPCPeer):
             future = self.loop.create_task(conn.listen())
             future.add_done_callback(disconnected)
 
-            self.loop.call_soon(self.request_register_client, server)
+            # Wait to make sure client has replied with name before
+            # requesting channels
+            self.loop.call_later(1.0, self.request_register_client, server)
 
     def server_disconnected(self, server):
         """Called when server disconnects"""
@@ -214,28 +216,3 @@ class ClientBackend(common.JSONRPCPeer):
     def _server_request(self, server, *args, **kwargs):
         conn = self.conns_by_s[server]
         self.request(conn, *args, **kwargs)
-
-
-    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-    # temporary nasty hacks
-    #
-    def tmp_add_request(self):
-        for s in self.servers.values():
-            conn = s.get('connection')
-            if conn:
-                self.request(conn, "get_name")
-
-    def tmp_exit(self):
-        print("system exit")
-        sys.exit()
-
-    async def tmp_sleep(self):
-        await asyncio.sleep(5.1)
-        print("Slept for 5.1 seconds")
-
-    def echo(self, msg):
-        print(msg)
-
-    def kbstop(self):
-        print("kbstop")
-        raise KeyboardInterrupt

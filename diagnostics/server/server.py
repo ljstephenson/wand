@@ -3,8 +3,6 @@ Server for laser diagnostics operation.
 """
 import itertools
 import asyncio
-import json
-import jsonrpc
 import collections
 import weakref
 

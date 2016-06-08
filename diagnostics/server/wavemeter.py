@@ -11,6 +11,8 @@ __all__ = ['WavemeterError',
            'switch',
            ]
 
+# Approx collections in Hz
+_FREQUENCY = 10
 # -----------------------------------------------------------------------------
 # Constants
 #
@@ -137,7 +139,7 @@ class WavemeterTask(object):
     async def measure(self):
         """Poll the wavemeter and reschedule the next poll"""
         lib.TriggerMeasurement(cCtrlMeasurementTriggerSuccess)
-        await asyncio.sleep(0.1)
+        await asyncio.sleep(1.0/_FREQUENCY)
 
         f = lib.GetFrequencyNum(self.channel.number, ctypes.c_double(0))
         t = self.loop.time()

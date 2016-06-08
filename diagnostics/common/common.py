@@ -358,13 +358,14 @@ class JSONRPCConnection(object):
 
     async def send_object(self, obj):
         """Send an object"""
-        msg = json.dumps(obj)
+        msg = json.dumps(obj, separators=(',', ':'))
         await self.send(msg)
 
     async def send(self, msg):
         """Send a string without checking if it's valid JSON"""
         # print("{}--> {}".format(self.addr, msg))
         # Need to protect against connection being closed before the send
+        print("--> Message size: {}".format(len(msg)))
         if self.writer is not None:
             self.writer.write(msg.encode())
             # await self.writer.drain()
@@ -375,7 +376,7 @@ class JSONRPCConnection(object):
         async for obj in JSONStreamIterator(self.reader):
             # print("{}<-- {}".format(self.addr, json.dumps(obj)))
             self.handler(self, obj)
-            print("<-- {}s".format(time.time()-t))
+            print("<-- {:.4f}s".format(time.time()-t))
             t = time.time()
 
 
@@ -404,11 +405,13 @@ class JSONStreamIterator(object):
     async def _fetch_object(self):
         obj = None
         r = 0.0
+        n = 0
         while not obj:
             try:
                 t = time.time()
-                data = await self.reader.read(2**15)
+                data = await self.reader.read(2**12)
                 r += time.time()-t
+                n += 1
             except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError) as e:
                 # print("got a connection error")
                 data = None
@@ -428,5 +431,6 @@ class JSONStreamIterator(object):
                 # EOF or error
                 self.reader.feed_eof()
                 return None
-        print("Read: {}s".format(r))
+        print("R:  {:.4f}s, reads: {}".format(r, n))
         return obj
+

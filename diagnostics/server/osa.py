@@ -14,10 +14,13 @@ __all__ = ['OSATask',
 # Value for choosing no options for DAQmx functions
 NO_OPTIONS = 0
 
+# Approx collection frequency
+_FREQUENCY = 10
+
 # Parameters for data acquisition
-SAMPLES = 16000
-RATE = 1.25e6
-TIMEOUT = 0.5
+SAMPLES = 1600
+RATE = 1.25e5
+TIMEOUT = 0.1
 MIN_V = -1.0
 MAX_V = 1.0
 AI_BLUE = b'/Dev1/ai0'
@@ -96,8 +99,7 @@ class OSATask(PyDAQmx.Task):
 
     def RestartTask(self):
         self.StopTask()
-        time.sleep(0.2)
-        self.StartTask()
+        self.loop.call_later((1.0/_FREQUENCY), self.StartTask)
 
     def DoneCallback(self, status):
         print("Status: {}".format(status))

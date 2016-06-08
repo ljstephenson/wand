@@ -8,6 +8,7 @@ import jsonrpc
 import collections
 import weakref
 
+
 # don't actually do anything with wavemeter/osa
 TEST=False
 if TEST:
@@ -95,17 +96,18 @@ class Server(common.JSONRPCPeer):
         conn = common.JSONRPCConnection(self.handle_rpc, reader, writer)
         future = self.loop.create_task(conn.listen())
 
-        def register_connection(result):
-            print("Registered connection of {}".format(result))
-            self.clients[result] = conn
-        self.request(conn, 'get_name', cb=register_connection)
-
         addr = writer.get_extra_info('peername')
         self.connections[addr] = conn
+
+        def register_connection(result):
+            print("Connection registered: {} ({})".format(addr, result))
+            self.clients[result] = conn
+        self.request(conn, 'get_name', cb=register_connection)
 
         def client_disconnected(future):
             # Just removing connection from connections should be enough -
             # all the other references are weak
+            print("Connection unregistered: {}".format(addr))
             conn = self.connections.pop(addr)
             conn.close()
             del conn

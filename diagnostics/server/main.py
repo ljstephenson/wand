@@ -1,10 +1,19 @@
+import time
+ts = time.time()
+print("Starting")
+
 import sys
 import argparse
 import asyncio
 
-import diagnostics.server.server as server
 
+
+print("[{:.3f}] Importing server... ".format(time.time()-ts), end='', flush=True)
+import diagnostics.server.server as server
+print("Done")
+print("[{:.3f}] Importing wavemeter... ".format(time.time()-ts), end='', flush=True)
 import diagnostics.server.wavemeter as wavemeter
+print("Done")
 
 def parse_args(argv):
     parser = argparse.ArgumentParser()
@@ -15,12 +24,16 @@ def parse_args(argv):
 def main(argv):
     args = parse_args(argv)
 
+    print("[{:.3f}] Initialising wavemeter... ".format(time.time()-ts), end='', flush=True)
     wavemeter.init()
+    print("Done")
 
     loop = asyncio.get_event_loop()
 
+    print("[{:.3f}] Initialising TCP server... ".format(time.time()-ts), end='', flush=True)
     s = server.Server(fname=args.file)
     s.startup()
+    print("Done")
 
     try:
         print("**Server Ready**")

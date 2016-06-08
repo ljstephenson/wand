@@ -343,18 +343,3 @@ class Server(common.JSONRPCPeer):
             self.wtask.ClearTask()
             self.wtask = None
 
-
-    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! #
-    # Dirty and nasty hacks
-    #
-    def dummy_osa(self, channel):
-        data_length = 10
-        data = [random.randint(0, 65535) for _ in range(data_length)]
-        self.loop.create_task(self.data_q.put(
-            {'source':'osa', 'channel':channel, 'time':self.loop.time(), 'data':data} ))
-
-    def dummy_wavemeter(self, channel):
-        c = self.channels.get(channel)
-        frequency = random.choice([(c.reference-750+random.randint(0, 1500)), -4, -3])
-        self.loop.create_task(self.data_q.put(
-            {'source':'wavemeter', 'channel':channel, 'time':self.loop.time(), 'data':frequency} ))

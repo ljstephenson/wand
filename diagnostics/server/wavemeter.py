@@ -132,6 +132,7 @@ class WavemeterTask(object):
         self._active = False
 
     def ClearTask(self):
+        """No-op so that wavemeter and OSA have identical APIs"""
         pass
 
     # -------------------------------------------------------------------------

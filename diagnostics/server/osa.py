@@ -76,7 +76,6 @@ class OSATask(PyDAQmx.Task):
         """
         data = numpy.zeros(SAMPLES)
         _read = numpy.int32()
-        # read_p = ctypes.pointer(numpy.ctypeslib.as_ctypes(_read))
         try:
             self.ReadAnalogF64(SAMPLES, TIMEOUT, PyDAQmx.DAQmx_Val_GroupByScanNumber, data,
                             SAMPLES, ctypes.byref(numpy.ctypeslib.as_ctypes(_read)), None)
@@ -91,20 +90,25 @@ class OSATask(PyDAQmx.Task):
         if not self.loop.is_closed():
             self.loop.create_task(self.queue.put(d))
 
-        # Restart task so that we have continuous acquisition
-        self.RestartTask()
+            # Restart task so that we have continuous acquisition
+            self.RestartTask()
 
         # Required
         return 0
 
-    def RestartTask(self):
+    def StopTask(self):
+        """Wraps StopTask to catch exceptions that we don't care about"""
         try:
-            self.StopTask()
+            super().StopTask()
         except DAQError:
             pass
-        self.loop.call_later((1.0/_FREQUENCY), self._restart)
 
-    def _restart(self):
+    def RestartTask(self):
+        self.StopTask()
+        self.loop.call_later((1.0/_FREQUENCY), self._start)
+
+    def _start(self):
+        """Wraps to catch exceptions, but note that this isn't public"""
         try:
             self.StartTask()
         except DAQError:

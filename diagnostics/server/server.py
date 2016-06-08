@@ -8,23 +8,10 @@ import jsonrpc
 import collections
 import weakref
 
-
-# don't actually do anything with wavemeter/osa
-TEST=False
-if TEST:
-    import random
-    DAQError = Exception
-else:
-    from PyDAQmx.DAQmxFunctions import DAQError
-    import diagnostics.server.osa as osa
-    import diagnostics.server.wavemeter as wavemeter
-
+import diagnostics.server.osa as osa
+import diagnostics.server.wavemeter as wavemeter
 import diagnostics.common as common
 from diagnostics.server.channel import ServerChannel as Channel
-
-
-# Normal switching interval in seconds
-INTERVAL=1
 
 DEFAULT_CFG_FILE = "./cfg/oldlab_server.json"
 
@@ -40,16 +27,9 @@ class Server(common.JSONRPCPeer):
                 ('port', None),
                 ('switcher', None),
                 ('channels', Channel),
-                ('fast', None),
-                ('pause', None),
+                ('mode', None),
             ])
-
-    @property
-    def interval(self):
-        if self.fast:
-            return 0.5
-        else:
-            return 1
+    interval = 1
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -63,14 +43,14 @@ class Server(common.JSONRPCPeer):
         self.data_q = asyncio.Queue()
 
         self.tcp_server = None
-        self.locked = False
+        self.locked = True
 
         # Switching task is stored to allow cancellation
         self.next_switch = None
 
         # Measurement tasks
-        self.otask = None
-        self.wtask = None
+        self.tasks = []
+
 
     def startup(self):
         # Start the TCP server
@@ -126,29 +106,22 @@ class Server(common.JSONRPCPeer):
         self.next_switch = None
 
         # Cancel the old Wavemeter and OSA Tasks
-        if not TEST:
-            self.cancel_tasks()
+        self.cancel_tasks()
 
         # Get the next channel in sequence if none supplied
         if channel is None:
             channel = next(self.ch_gen)
         c = self.channels[channel]
-        #print("!", end='', flush=True)
 
         # Switch the switcher, wherever it's located
         if self.switcher['name'] == "wavemeter":
-            if not TEST:
-                wavemeter.switch(c.number)
+            wavemeter.switch(c.number)
         else:
             # do the switching
             pass
 
-        if not TEST:
-            self.new_tasks(c)
-            self.start_tasks()
-        else:
-            self.dummy_osa(channel)
-            self.dummy_wavemeter(channel)
+        self.new_tasks(c)
+        self.start_tasks()
 
         # Schedule the next switch
         if not self.locked:
@@ -315,31 +288,24 @@ class Server(common.JSONRPCPeer):
     # OSA and Wavemeter task operations
     #
     def new_tasks(self, channel):
-        if self.otask is None:
-            self.otask = osa.OSATask(self.loop, self.data_q, channel)
-        if self.wtask is None:
-            self.wtask = wavemeter.WavemeterTask(self.loop, self.data_q, channel)        
-        # else error condition
+        if self.mode == 'osa_only':
+            tasks = [osa.OSATask]
+        elif self.mode == 'wavemeter_only':
+            tasks = [wavemeter.WavemeterTask]
+        else:
+            tasks = [osa.OSATask, wavemeter.WavemeterTask]
+
+        for t in tasks:
+            self.tasks.append(t(self.loop, self.data_q, channel))
 
     def start_tasks(self):
-        if self.otask is not None:
-            self.otask.StartTask()
-        if self.wtask is not None:
-            self.wtask.StartTask()
+        for t in self.tasks:
+            t.StartTask()
 
     def cancel_tasks(self):
-        if self.otask is not None:
-            try:
-                self.otask.StopTask()
-            except DAQError:
-                # we expect an error due to stopping acquisition before
-                # requested number of samples acquired
-                pass
-            self.otask.ClearTask()
-            self.otask = None
+        while self.tasks:
+            t = self.tasks.pop()
+            t.StopTask()
+            t.ClearTask()
 
-        if self.wtask is not None:
-            self.wtask.StopTask()
-            self.wtask.ClearTask()
-            self.wtask = None
 

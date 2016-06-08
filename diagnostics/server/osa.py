@@ -3,7 +3,6 @@ Optical Spectrum Analyser interface for data acquisition card.
 """
 import numpy
 import ctypes
-import time
 import PyDAQmx
 
 from PyDAQmx.DAQmxFunctions import DAQError
@@ -44,7 +43,7 @@ class OSATask(PyDAQmx.Task):
     
         # Blue/Red lasers require using different etalons, so have different
         # analog inputs to the DAQ card
-        if self.channel.blue == True:
+        if self.channel.blue:
             AI = AI_BLUE
             TRIG = TRIG_BLUE
         else:
@@ -82,10 +81,9 @@ class OSATask(PyDAQmx.Task):
         except Exception as e:
             print("DAQMX READ FAILED")
             print(e)
-        t = self.loop.time()
 
         data = numpy.around(data, decimals=4)
-        d = {'source':'osa', 'channel':self.channel.name, 'time':t, 'data':data.tolist()}
+        d = {'source':'osa', 'channel':self.channel.name, 'data':data.tolist()}
     
         if not self.loop.is_closed():
             self.loop.create_task(self.queue.put(d))

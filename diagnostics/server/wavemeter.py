@@ -144,8 +144,7 @@ class WavemeterTask(object):
         await asyncio.sleep(1.0/_FREQUENCY)
 
         f = lib.GetFrequencyNum(self.channel.number, ctypes.c_double(0))
-        t = self.loop.time()
-        d = {'source':'wavemeter', 'channel':self.channel.name, 'time':t, 'data':f}
+        d = {'source':'wavemeter', 'channel':self.channel.name, 'data':f}
 
         if not self.loop.is_closed():
             self.loop.create_task(self.queue.put(d))

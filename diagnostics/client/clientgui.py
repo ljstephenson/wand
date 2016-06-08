@@ -3,6 +3,7 @@ import pyqtgraph as pg
 import pyqtgraph.dockarea as dock
 import numpy as np
 import functools
+import collections
 
 from diagnostics.client.client import ClientBackend
 from diagnostics.client.channel import ClientChannel
@@ -221,6 +222,14 @@ class GUIChannel(ClientChannel):
 
 
 class ClientGUI(ClientBackend):
+    # List of configurable attributes (maintains order when dumping config)
+    # These will all be initialised during __init__ in the call to 
+    # super.__init__ because JSONRPCPeer is a JSONConfigurable
+    _attrs = collections.OrderedDict([
+                ('name', None),
+                ('servers', None),
+                ('layout', None),
+            ])
     def __init__(self, *args, **kwargs):
         self.win = QtGui.QMainWindow()
         self.area = dock.DockArea()
@@ -228,12 +237,15 @@ class ClientGUI(ClientBackend):
 
         super().__init__(GUIChannel, *args, **kwargs)
 
-        prev_dock = None
-        for c in self.channels.values():
-            # for now always horizontal
-            d = c.dock
-            self.area.addDock(d, position='right', relativeTo=prev_dock)
-            prev_dock = d
+        for row in self.layout:
+            prev = None
+            pos = 'bottom'
+            for channel in row:
+                c = self.channels[channel]
+                d = c.dock
+                self.area.addDock(d, position=pos, relativeTo=prev)
+                pos = 'right'
+                prev = d
 
     def show(self):
         self.win.show()

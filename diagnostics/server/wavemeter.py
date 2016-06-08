@@ -11,8 +11,9 @@ __all__ = ['WavemeterError',
            'switch',
            ]
 
-# Approx collections in Hz
+# Approx collection frequency
 _FREQUENCY = 10
+
 # -----------------------------------------------------------------------------
 # Constants
 #

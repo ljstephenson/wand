@@ -372,12 +372,9 @@ class JSONRPCConnection(object):
 
     async def listen(self):
         """Listens for JSON and calls the handler"""
-        t = time.time()
         async for obj in JSONStreamIterator(self.reader):
             # print("{}<-- {}".format(self.addr, json.dumps(obj)))
             self.handler(self, obj)
-            print("<-- {:.4f}s".format(time.time()-t))
-            t = time.time()
 
 
 class JSONStreamIterator(object):
@@ -431,6 +428,6 @@ class JSONStreamIterator(object):
                 # EOF or error
                 self.reader.feed_eof()
                 return None
-        print("R:  {:.4f}s, reads: {}".format(r, n))
+        # print("R:  {:.4f}s, reads: {}".format(r, n))
         return obj
 

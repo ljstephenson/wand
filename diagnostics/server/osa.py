@@ -25,7 +25,8 @@ MIN_V = -1.0
 MAX_V = 1.0
 AI_BLUE = b'/Dev1/ai0'
 AI_RED = b'/Dev1/ai1'
-TRIG_CHANNEL= b'/Dev1/PFI0'
+TRIG_BLUE = b'/Dev1/PFI0'
+TRIG_RED = b'/Dev1/PFI2'
 
 
 class OSATask(PyDAQmx.Task):
@@ -45,8 +46,10 @@ class OSATask(PyDAQmx.Task):
         # analog inputs to the DAQ card
         if self.channel.blue == True:
             AI = AI_BLUE
+            TRIG = TRIG_BLUE
         else:
             AI = AI_RED
+            TRIG = TRIG_RED
 
         # We want to measure voltage in range MIN_V to MAX_V, with a finite  
         # number of samples taken at RATE, triggering collection on the
@@ -55,7 +58,7 @@ class OSATask(PyDAQmx.Task):
                                  PyDAQmx.DAQmx_Val_Volts, None)
         self.CfgSampClkTiming('', RATE, PyDAQmx.DAQmx_Val_Rising,
                               PyDAQmx.DAQmx_Val_FiniteSamps, SAMPLES)
-        self.CfgDigEdgeStartTrig(TRIG_CHANNEL, PyDAQmx.DAQmx_Val_Falling)
+        self.CfgDigEdgeStartTrig(TRIG, PyDAQmx.DAQmx_Val_Falling)
 
         # We have to manualy reset the trigger by restarting the task -
         # committing the task to the DAQ card minimises the time taken to
@@ -82,24 +85,31 @@ class OSATask(PyDAQmx.Task):
             print(e)
         t = self.loop.time()
 
-        # data is hacked down to shorten while testing
+        data = numpy.around(data, decimals=4)
         d = {'source':'osa', 'channel':self.channel.name, 'time':t, 'data':data.tolist()}
     
         if not self.loop.is_closed():
             self.loop.create_task(self.queue.put(d))
 
         # Restart task so that we have continuous acquisition
-        try:
-            self.RestartTask()
-        except DAQError:
-            pass
+        self.RestartTask()
 
         # Required
         return 0
 
     def RestartTask(self):
-        self.StopTask()
-        self.loop.call_later((1.0/_FREQUENCY), self.StartTask)
+        try:
+            self.StopTask()
+        except DAQError:
+            pass
+        self.loop.call_later((1.0/_FREQUENCY), self._restart)
+
+    def _restart(self):
+        try:
+            self.StartTask()
+        except DAQError:
+            # Task specified is invalid i.e. we've switched away
+            pass
 
     def DoneCallback(self, status):
         print("Status: {}".format(status))

@@ -5,6 +5,7 @@ import itertools
 import asyncio
 import collections
 import weakref
+from influxdb import InfluxDBClient
 
 import diagnostics.server.osa as osa
 import diagnostics.server.wavemeter as wavemeter
@@ -26,11 +27,15 @@ class Server(common.JSONRPCPeer):
                 ('switcher', None),
                 ('channels', Channel),
                 ('mode', None),
+                ('influxdb', None),
             ])
     interval = 1
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+
+        # Initialise influxdb client
+        self.influx_cl = InfluxDBClient(**self.influxdb)
 
         # Generator for cycling through configured channels infinitely
         self.ch_gen = itertools.cycle(self.channels)
@@ -264,8 +269,7 @@ class Server(common.JSONRPCPeer):
         while True:
             data = await self.data_q.get()
             if data['source'] == 'wavemeter':
-                # logic for logging
-                pass
+                self.loop.call_soon(self.send_influx, data)
             self.loop.call_soon(self.send_data, data)
             #self.loop.call_soon(self.basic_send_data, data)
 
@@ -306,4 +310,44 @@ class Server(common.JSONRPCPeer):
             t.StopTask()
             t.ClearTask()
 
+    # -------------------------------------------------------------------------
+    # InfluxDB
+    #
+    def send_influx(self, data):
+        """Send reformatted wavemeter data object to influxDB server"""
+        self.influx_cl.write_points(self.data2influx(data))
 
+    def data2influx(self, data):
+        """Convert wavemeter data object to influxDB point"""
+        channel = data['channel']
+        d = data['data']
+        if d > 0:
+            frequency = d
+            detuning = (frequency - self.channels[channel].reference)*1e6
+            error = None
+        else:
+            frequency = None
+            detuning = None
+            if d == -3:
+                error = "Low Signal"
+            elif d == -4:
+                error = "Big Signal"
+            else:
+                error = "Other Error"
+        return self.populate_influx(channel, frequency, detuning, error)
+
+    def populate_influx(self, channel, frequency, detuning, error):
+        """Populate wavemeter influxDB point with relevant tags and fields"""
+        return [
+            {
+                "measurement": "wavemeter",
+                "tags": {
+                    "channel": channel,
+                },
+                "fields": {
+                    "frequency": frequency,
+                    "detuning": detuning,
+                    "error": error,
+                }
+            }
+        ]

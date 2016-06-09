@@ -33,6 +33,7 @@ class Server(common.JSONRPCPeer):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.get_switcher()
 
         # Initialise influxdb client
         self.influx_cl = InfluxDBClient(**self.influxdb)
@@ -54,6 +55,14 @@ class Server(common.JSONRPCPeer):
         # Measurement tasks
         self.tasks = []
 
+    def get_switcher(self):
+        """Factory to set the 'switch' method to do the right thing"""
+        if self.switcher['name'] == "wavemeter":
+            self.switch = wavemeter.switch
+        elif self.switcher['name'] == "ethernet_switcher"
+            pass
+            # self.sw = ethernetswitchermodule.Switcher(**self.switcher['kwargs'])
+            # self.switch = self.sw.switch
 
     def startup(self):
         # Start the TCP server
@@ -116,13 +125,7 @@ class Server(common.JSONRPCPeer):
             channel = next(self.ch_gen)
         c = self.channels[channel]
 
-        # Switch the switcher, wherever it's located
-        if self.switcher['name'] == "wavemeter":
-            wavemeter.switch(c.number)
-        else:
-            # do the switching
-            pass
-
+        self.switch(c.number)
         self.new_tasks(c)
         self.start_tasks()
 

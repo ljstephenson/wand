@@ -328,7 +328,7 @@ class Server(common.JSONRPCPeer):
         else:
             frequency = None
             detuning = None
-            error = d
+            error = int(d)
         return self.populate_influx(channel, frequency, detuning, error)
 
     def populate_influx(self, channel, frequency, detuning, error):

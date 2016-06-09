@@ -22,7 +22,7 @@ class Server(common.JSONRPCPeer):
     # super.__init__ because JSONRPCPeer is a JSONConfigurable
     _attrs = collections.OrderedDict([
                 ('name', None),
-                ('address', None),
+                ('host', None),
                 ('port', None),
                 ('switcher', None),
                 ('channels', Channel),
@@ -57,7 +57,7 @@ class Server(common.JSONRPCPeer):
 
     def startup(self):
         # Start the TCP server
-        coro = asyncio.start_server(self.client_connected, self.address, self.port)
+        coro = asyncio.start_server(self.client_connected, self.host, self.port)
         self.tcp_server = self.loop.run_until_complete(coro)
         # Schedule switching and store the task
         self.next_switch = self.loop.call_soon(self.switch)

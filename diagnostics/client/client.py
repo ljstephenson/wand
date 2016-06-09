@@ -64,7 +64,7 @@ class ClientBackend(common.JSONRPCPeer):
 
         s = self.servers[server]
         try:
-            reader, writer = await asyncio.open_connection(s['address'], s['port'])
+            reader, writer = await asyncio.open_connection(s['host'], s['port'])
         except (ConnectionRefusedError, WindowsError) as e:
             print("Connection failed")
             self.loop.create_task(self.server_reconnect(server, attempt))

@@ -82,8 +82,10 @@ class OSATask(PyDAQmx.Task):
             print("DAQMX READ FAILED")
             print(e)
 
-        data = np.around(data, decimals=4)
-        d = {'source':'osa', 'channel':self.channel.name, 'data':data.tolist()}
+        # Multiply by 10000 and cast to int to truncate data
+        scale = 1e4
+        data = np.multiply(data, scale).astype(int)
+        d = {'source':'osa', 'channel':self.channel.name, 'data':data.tolist(), 'scale':scale}
     
         if not self.loop.is_closed():
             self.loop.create_task(self.queue.put(d))

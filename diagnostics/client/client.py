@@ -120,13 +120,12 @@ class ClientBackend(common.JSONRPCPeer):
         # print("called get_name")
         return self.name
 
-    def rpc_osa(self, channel, time, data):
-        # print("OSA notification: {}".format([channel, time, data]))
+    def rpc_osa(self, channel, data, scale):
         c = self.channels.get(channel)
         if c is not None:
-            c.osa = np.asarray(data)
+            c.osa = np.divide(np.asarray(data), scale)
 
-    def rpc_wavemeter(self, channel, time, data):
+    def rpc_wavemeter(self, channel, data):
         c = self.channels.get(channel)
         if c is not None:
             c.frequency = data

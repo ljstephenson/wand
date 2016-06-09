@@ -364,8 +364,8 @@ class JSONRPCConnection(object):
     async def send(self, msg):
         """Send a string without checking if it's valid JSON"""
         # print("{}--> {}".format(self.addr, msg))
+        # print("--> Message size: {}".format(len(msg)))
         # Need to protect against connection being closed before the send
-        print("--> Message size: {}".format(len(msg)))
         if self.writer is not None:
             self.writer.write(msg.encode())
             # await self.writer.drain()

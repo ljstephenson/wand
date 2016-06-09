@@ -1,7 +1,7 @@
 """
 Optical Spectrum Analyser interface for data acquisition card.
 """
-import numpy
+import numpy as np
 import ctypes
 import PyDAQmx
 
@@ -73,16 +73,16 @@ class OSATask(PyDAQmx.Task):
         """
         Called when the DAQ has data, also resets the trigger
         """
-        data = numpy.zeros(SAMPLES)
-        _read = numpy.int32()
+        data = np.zeros(SAMPLES)
+        _read = np.int32()
         try:
             self.ReadAnalogF64(SAMPLES, TIMEOUT, PyDAQmx.DAQmx_Val_GroupByScanNumber, data,
-                            SAMPLES, ctypes.byref(numpy.ctypeslib.as_ctypes(_read)), None)
+                            SAMPLES, ctypes.byref(np.ctypeslib.as_ctypes(_read)), None)
         except Exception as e:
             print("DAQMX READ FAILED")
             print(e)
 
-        data = numpy.around(data, decimals=4)
+        data = np.around(data, decimals=4)
         d = {'source':'osa', 'channel':self.channel.name, 'data':data.tolist()}
     
         if not self.loop.is_closed():

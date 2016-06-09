@@ -46,7 +46,7 @@ class Server(common.JSONRPCPeer):
         self.data_q = asyncio.Queue()
 
         self.tcp_server = None
-        self.locked = True
+        self.locked = None
 
         # Switching task is stored to allow cancellation
         self.next_switch = None

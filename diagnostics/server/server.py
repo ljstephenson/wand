@@ -328,12 +328,7 @@ class Server(common.JSONRPCPeer):
         else:
             frequency = None
             detuning = None
-            if d == -3:
-                error = "Low Signal"
-            elif d == -4:
-                error = "Big Signal"
-            else:
-                error = "Other Error"
+            error = d
         return self.populate_influx(channel, frequency, detuning, error)
 
     def populate_influx(self, channel, frequency, detuning, error):

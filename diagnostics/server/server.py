@@ -49,7 +49,7 @@ class Server(common.JSONRPCPeer):
         self.locked = None
 
         # Switching task is stored to allow cancellation
-        self.next_switch = None
+        self._next = None
 
         # Measurement tasks
         self.tasks = []
@@ -60,7 +60,7 @@ class Server(common.JSONRPCPeer):
         coro = asyncio.start_server(self.client_connected, self.host, self.port)
         self.tcp_server = self.loop.run_until_complete(coro)
         # Schedule switching and store the task
-        self.next_switch = self.loop.call_soon(self.switch)
+        self._next = self.loop.call_soon(self.select)
         # Make sure we're taking items off the queue
         self.loop.create_task(self.consume())
 
@@ -104,9 +104,9 @@ class Server(common.JSONRPCPeer):
     # -------------------------------------------------------------------------
     # Switching
     #
-    def switch(self, channel=None):
-        """Switch to the NAMED channel"""
-        self.next_switch = None
+    def select(self, channel=None):
+        """Switch to named channel and begin collections"""
+        self._next = None
 
         # Cancel the old Wavemeter and OSA Tasks
         self.cancel_tasks()
@@ -128,7 +128,7 @@ class Server(common.JSONRPCPeer):
 
         # Schedule the next switch
         if not self.locked:
-            self.next_switch = self.loop.call_later(self.interval, self.switch)
+            self._next = self.loop.call_later(self.interval, self.select)
 
     # -------------------------------------------------------------------------
     # RPC methods
@@ -143,29 +143,29 @@ class Server(common.JSONRPCPeer):
         """
         Switches to named channel indefinitely
         """
-        if self.next_switch:
-            self.loop.call_soon(self.next_switch.cancel)
+        if self._next:
+            self.loop.call_soon(self._next.cancel)
         self.locked = channel
-        self.loop.call_soon(self.switch, channel)
+        self.loop.call_soon(self.select, channel)
         self.loop.call_soon(self.notify_locked, channel)
 
     def rpc_unlock(self):
         """Resume normal switching"""
         self.locked = False
-        self.next_switch = self.loop.call_soon(self.switch)
+        self._next = self.loop.call_soon(self.select)
         self.loop.call_soon(self.notify_unlocked)
 
     def rpc_pause(self, pause=True):
         if pause:
-            if self.next_switch:
-                self.loop.call_soon(self.next_switch.cancel)
+            if self._next:
+                self.loop.call_soon(self._next.cancel)
             self.cancel_tasks()
         else:
             # Resume
             if self.locked:
-                self.loop.call_soon(self.switch, self.locked)
+                self.loop.call_soon(self.select, self.locked)
             else:
-                self.loop.call_soon(self.switch)
+                self.loop.call_soon(self.select)
         self.pause = pause
 
     def rpc_get_name(self):

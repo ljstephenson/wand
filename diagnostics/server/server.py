@@ -59,7 +59,7 @@ class Server(common.JSONRPCPeer):
         """Factory to set the 'switch' method to do the right thing"""
         if self.switcher['name'] == "wavemeter":
             self.switch = wavemeter.switch
-        elif self.switcher['name'] == "ethernet_switcher"
+        elif self.switcher['name'] == "ethernet_switcher":
             pass
             # self.sw = ethernetswitchermodule.Switcher(**self.switcher['kwargs'])
             # self.switch = self.sw.switch

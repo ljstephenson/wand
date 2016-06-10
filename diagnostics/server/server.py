@@ -96,8 +96,13 @@ class Server(common.JSONRPCPeer):
         self.connections[addr] = conn
 
         def register_connection(result):
-            print("Connection registered: {} ({})".format(addr, result))
-            self.clients[result] = conn
+            if result not in self.clients:
+                print("Connection registered: {} ({})".format(addr, result))
+                self.clients[result] = conn
+            else:
+                print("Connection rejected: '{}' is already connected".format(result))
+                self.notify(conn, 'connection_rejected',
+                            params={"server":self.name, "reason":"Client with same name already connected"})
         self.request(conn, 'get_name', cb=register_connection)
 
         def client_disconnected(future):

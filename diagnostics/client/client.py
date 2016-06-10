@@ -66,7 +66,7 @@ class ClientBackend(common.JSONRPCPeer):
         try:
             reader, writer = await asyncio.open_connection(s['host'], s['port'])
         except (ConnectionRefusedError, WindowsError) as e:
-            print("Connection failed")
+            print("Connection failed: {}".format(e))
             self.loop.create_task(self.server_reconnect(server, attempt))
         else:
             conn = common.JSONRPCConnection(self.handle_rpc, reader, writer)
@@ -102,7 +102,12 @@ class ClientBackend(common.JSONRPCPeer):
             await asyncio.sleep(backoff)
             await self.server_connect(server, attempt)
         else:
-            print("Aborting reconnect, too many failures")
+            self.loop.stop()
+            print("Aborted reconnect to '{}': too many failures".format(server))
+
+    def abort_connection(self, server, reason):
+        self.loop.stop()
+        print("'{}' refused connection: {}".format(server, reason))
 
     def close_connections(self):
         while self.conns_by_s:
@@ -117,7 +122,7 @@ class ClientBackend(common.JSONRPCPeer):
     # to the dispatcher
     #
     def rpc_get_name(self):
-        # print("called get_name")
+        # print("called get_name")+
         return self.name
 
     def rpc_osa(self, channel, data, scale):
@@ -154,6 +159,12 @@ class ClientBackend(common.JSONRPCPeer):
         unlocked = [self.channels.get(c) for c in channels]
         for c in unlocked:
             c.unlock()
+
+    def rpc_connection_rejected(self, server, reason):
+        """Called by server to indicate that the connection was rejected"""
+        # Deliberately not called connection_refused - in this case the
+        # connection was made but the server rejected it for another reason
+        self.loop.call_soon(self.abort_connection, server, reason)
 
     # -------------------------------------------------------------------------
     # Requests for RPC

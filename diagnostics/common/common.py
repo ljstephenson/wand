@@ -340,7 +340,8 @@ class JSONRPCConnection(object):
         self.addr = writer.get_extra_info('peername')
 
     def close(self):
-        self.writer.close()
+        if self.writer:
+            self.writer.close()
         self.writer = None
         self.reader = None
         self.handler = None

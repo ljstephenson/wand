@@ -30,7 +30,7 @@ class Server(common.JSONRPCPeer):
                 ('mode', None),
                 ('influxdb', None),
             ])
-    interval = 1
+    interval = 10
 
     def __init__(self, simulate=False, **kwargs):
         super().__init__(**kwargs)

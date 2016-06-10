@@ -9,6 +9,7 @@ from influxdb import InfluxDBClient
 
 import diagnostics.server.osa as osa
 import diagnostics.server.wavemeter as wavemeter
+import diagnostics.server.fake as fake
 import diagnostics.common as common
 from diagnostics.server.channel import ServerChannel as Channel
 
@@ -31,8 +32,9 @@ class Server(common.JSONRPCPeer):
             ])
     interval = 1
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def __init__(self, simulate=False, **kwargs):
+        super().__init__(**kwargs)
+        self.simulate = simulate
         self.get_switcher()
 
         # Initialise influxdb client
@@ -57,7 +59,9 @@ class Server(common.JSONRPCPeer):
 
     def get_switcher(self):
         """Factory to set the 'switch' method to do the right thing"""
-        if self.switcher['name'] == "wavemeter":
+        if self.simulate:
+            self.switch = lambda c: None
+        elif self.switcher['name'] == "wavemeter":
             self.switch = wavemeter.switch
         elif self.switcher['name'] == "ethernet_switcher":
             pass
@@ -271,7 +275,7 @@ class Server(common.JSONRPCPeer):
         """Handles data sending and logs frequency occasionally"""
         while True:
             data = await self.data_q.get()
-            if data['source'] == 'wavemeter':
+            if data['source'] == 'wavemeter' and not self.simulate:
                 self.loop.call_soon(self.send_influx, data)
             self.loop.call_soon(self.send_data, data)
             #self.loop.call_soon(self.basic_send_data, data)
@@ -293,12 +297,15 @@ class Server(common.JSONRPCPeer):
     # OSA and Wavemeter task operations
     #
     def new_tasks(self, channel):
-        if self.mode == 'osa_only':
-            tasks = [osa.OSATask]
-        elif self.mode == 'wavemeter_only':
-            tasks = [wavemeter.WavemeterTask]
+        if self.simulate:
+            tasks = [fake.OSATask, fake.WavemeterTask]
         else:
-            tasks = [osa.OSATask, wavemeter.WavemeterTask]
+            if self.mode == 'osa_only':
+                tasks = [osa.OSATask]
+            elif self.mode == 'wavemeter_only':
+                tasks = [wavemeter.WavemeterTask]
+            else:
+                tasks = [osa.OSATask, wavemeter.WavemeterTask]
 
         for t in tasks:
             self.tasks.append(t(self.loop, self.data_q, channel))

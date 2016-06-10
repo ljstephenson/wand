@@ -18,8 +18,7 @@ class GUIChannel(ClientChannel):
         super().__init__(*args, **kwargs)
 
         # This has to go after the name has been initialised for the dock title
-        self._dock = dock.Dock(self.name)
-        self._dock.addWidget(self._layout)
+        self._dock = dock.Dock(self.name, widget=self._layout, autoOrientation=False)
 
         self._connect_callbacks()
 
@@ -35,19 +34,18 @@ class GUIChannel(ClientChannel):
         self._detuning = pg.LabelItem("")
         self._detuning.setText("Detuning", size="64pt")
         self._frequency = pg.LabelItem("")
-        self._frequency.setText("Frequency", size="8pt")
+        self._frequency.setText("Frequency", size="12pt")
         self._name = pg.LabelItem("")
         self._name.setText("Name", size="32pt")
 
-        self._osa = self._plot.addPlot(title="Spectrum Analyser")
+        self._osa = self._plot.addPlot(title="Spectrum Analyser", colspan=3)
         self._osa_curve = self._osa.plot(pen='y')
 
         self._plot.nextRow()
-        self._plot.addItem(self._detuning)
-        self._plot.nextRow()
-        self._plot.addItem(self._frequency)
+        self._plot.addItem(self._detuning, colspan=3)
         self._plot.nextRow()
         self._plot.addItem(self._name)
+        self._plot.addItem(self._frequency, colspan=2)
 
         self._exposure = QtGui.QSpinBox()
         self._exposure.setRange(0, 100)
@@ -180,16 +178,14 @@ class GUIChannel(ClientChannel):
         if val is None:
             val = 0
         elif val == -3:
-            val = 0
-            error = "Low Signal"
+            error = "Low"
         elif val == -4:
-            val = 0
-            error = "Big Signal"
+            error = "High"
         elif val < 0:
-            val = 0
-            error = "Other Error"
-        self._f = val
-        self._frequency.setText("{:.7f}".format(val))
+            error = "Error"
+        else:
+            self._f = val
+            self._frequency.setText("{:.7f}".format(val))
 
         if not error:
             # Detuning in MHz not THz
@@ -234,6 +230,7 @@ class ClientGUI(ClientBackend):
         self.win = QtGui.QMainWindow()
         self.area = dock.DockArea()
         self.win.setCentralWidget(self.area)
+        self.win.setWindowTitle("Super-duper Python Wavemeter Viewer!")
 
         super().__init__(GUIChannel, *args, **kwargs)
 

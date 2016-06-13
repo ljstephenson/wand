@@ -5,6 +5,7 @@ import itertools
 import asyncio
 import collections
 import weakref
+import logging
 from influxdb import InfluxDBClient
 
 import diagnostics.server.osa as osa
@@ -15,8 +16,14 @@ from diagnostics.server.channel import ServerChannel as Channel
 
 DEFAULT_CFG_FILE = "./cfg/oldlab_server.json"
 
+log = logging.getLogger(__name__)
 class Server(common.JSONRPCPeer):
     """
+    Main class for laser diagnostics.
+
+    Implements a TCP server for clients to connect to, handles gathering
+    data from OSA and wavemeter, switching channels, and distributing data
+    to clients.
     """
     # List of configurable attributes (maintains order when dumping config)
     # These will all be initialised during __init__ in the call to 
@@ -94,13 +101,14 @@ class Server(common.JSONRPCPeer):
 
         addr = writer.get_extra_info('peername')
         self.connections[addr] = conn
+        log.info("Incoming connection from {}".format(addr))
 
         def register_connection(result):
             if result not in self.clients:
-                print("Connection registered: {} ({})".format(addr, result))
+                log.info("Connection from {} registered: {}".format(addr, result))
                 self.clients[result] = conn
             else:
-                print("Connection rejected: '{}' is already connected".format(result))
+                log.info("Connection from {} rejected: name '{}' is already registered".format(addr, result))
                 self.notify(conn, 'connection_rejected',
                             params={"server":self.name, "reason":"Client with same name already connected"})
         self.request(conn, 'get_name', cb=register_connection)
@@ -108,7 +116,7 @@ class Server(common.JSONRPCPeer):
         def client_disconnected(future):
             # Just removing connection from connections should be enough -
             # all the other references are weak
-            print("Connection unregistered: {}".format(addr))
+            log.info("Connection unregistered: {}".format(addr))
             conn = self.connections.pop(addr)
             conn.close()
             del conn
@@ -134,6 +142,7 @@ class Server(common.JSONRPCPeer):
             channel = next(self.ch_gen)
         c = self.channels[channel]
 
+        log.debug("Selecting channel '{}'".format(channel))
         self.switch(c.number)
         self.new_tasks(c)
         self.start_tasks()

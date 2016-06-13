@@ -1,47 +1,63 @@
-import time
 import sys
 import argparse
 import asyncio
+import logging
 
 import diagnostics.server.server as server
 import diagnostics.server.wavemeter as wavemeter
 
 def parse_args(argv):
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser("Python powered Wavemeter server")
     parser.add_argument("-f", "--file", help="Filename to load JSON from", default=server.DEFAULT_CFG_FILE)
-    parser.add_argument("-s", "--simulate", help="Run simulation", action='store_true')
+    parser.add_argument("-s", "--simulate", help="Run as simulation", action='store_true')
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("-v", "--verbose", help="Increase output verbosity", action="count")
+    group.add_argument("-q", "--quiet", help="Decrease output verbosity", action="count")
     return parser.parse_args(argv)
 
+def set_verbosity(args):
+    # Default log level is warning
+    level = logging.WARNING
+    if args.verbose:
+        new_level = (logging.WARNING - 10*args.verbose)
+        level = new_level if new_level >= logging.DEBUG else logging.DEBUG
+    elif args.quiet:
+        new_level = (logging.WARNING + 10*args.quiet)
+        level = new_level if new_level <= logging.CRITICAL else logging.CRITICAL
+    logging.basicConfig(format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",level=level)
 
 def main(argv):
     args = parse_args(argv)
-    ts = time.time()
+    set_verbosity(args)
+    log = logging.getLogger(__name__)
 
     if not args.simulate:
-        print("[{:.3f}] Initialising wavemeter... ".format(time.time()-ts), end='', flush=True)
+        log.info("Initialising wavemeter... ")
         wavemeter.init()
-        print("Done")
+        log.info("Done initialising wavemeter")
 
     loop = asyncio.get_event_loop()
 
-    print("[{:.3f}] Initialising TCP server... ".format(time.time()-ts), end='', flush=True)
+    log.info("Initialising TCP server... ")
     s = server.Server(fname=args.file, simulate=args.simulate)
     s.startup()
-    print("Done")
+    log.info("Done initialising TCP server")
 
     try:
-        print("**Server Ready**")
+        log.info("Wavemeter server ready")
         if args.simulate:
-            print("THIS IS A SIMULATION!")
-            print("Does not access hardware so works simultaneously with old wavemeter")
+            log.info("Running as simulation, will not access hardware")
         loop.run_forever()
     except KeyboardInterrupt as e:  
-        print("\n**KeyboardInterupt**")
+        log.info("Quitting due to user keyboard interrupt")
     except SystemExit as e:
-        print("\n**SystemExit**")
+        log.exception("SystemExit occurred in main loop")
+        raise
+    except Exception as e:
+        log.exception("Exception occurred in main loop")
         raise
     finally:
-        print("Cleaning up")
+        log.info("Server loop exited, performing cleanup")
         s.shutdown()
         loop.stop()
         loop.close()

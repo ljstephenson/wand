@@ -32,10 +32,11 @@ class Server(common.JSONRPCPeer):
                 ('name', None),
                 ('host', None),
                 ('port', None),
-                ('switcher', None),
-                ('channels', Channel),
-                ('mode', None),
                 ('influxdb', None),
+                ('switcher', None),
+                ('osa', None),
+                ('mode', None),
+                ('channels', Channel),
             ])
     interval = 10
 
@@ -43,6 +44,7 @@ class Server(common.JSONRPCPeer):
         super().__init__(**kwargs)
         self.simulate = simulate
         self.get_switcher()
+        self.configure_osa()
 
         # Initialise influxdb client
         self.influx_cl = InfluxDBClient(**self.influxdb)
@@ -74,6 +76,11 @@ class Server(common.JSONRPCPeer):
             pass
             # self.sw = ethernetswitchermodule.Switcher(**self.switcher['kwargs'])
             # self.switch = self.sw.switch
+
+    def configure_osa(self):
+        """Set the input and trigger channels to be used on the osa"""
+        if not self.simulate:
+            osa.channel_setup(self.osa)
 
     def startup(self):
         # Start the TCP server

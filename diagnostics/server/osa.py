@@ -22,14 +22,19 @@ RATE = 1.25e5
 TIMEOUT = 0.1
 MIN_V = -1.0
 MAX_V = 1.0
-AI_BLUE = b'/Dev1/ai0'
-AI_RED = b'/Dev1/ai1'
-TRIG_BLUE = b'/Dev1/PFI0'
-TRIG_RED = b'/Dev1/PFI2'
+
+def channel_setup(config):
+    """Set up the channels to be used in the DAQ card"""
+    global AI_BLUE, AI_RED, TRIG_BLUE, TRIG_RED
+    AI_BLUE = config['blue']['input'].encode()
+    AI_RED = config['red']['input'].encode()
+    TRIG_BLUE = config['blue']['trigger'].encode()
+    TRIG_RED = config['red']['trigger'].encode()
 
 
 class OSATask(PyDAQmx.Task):
     """
+    Task object for collecting data from the Optical Spectrum Analyser
     """
     def __init__(self, loop, queue, channel):
         """

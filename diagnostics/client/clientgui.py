@@ -1,4 +1,4 @@
-from PyQt4 import QtGui, QtCore
+from PyQt4 import QtGui
 import pyqtgraph as pg
 import pyqtgraph.dockarea as dock
 import numpy as np
@@ -18,59 +18,65 @@ class GUIChannel(ClientChannel):
         super().__init__(*args, **kwargs)
 
         # This has to go after the name has been initialised for the dock title
-        self._dock = dock.Dock(self.name, widget=self._layout, autoOrientation=False)
-
+        self._dock = dock.Dock(self.name, autoOrientation=False)
+        self._gui_layout()
         self._connect_callbacks()
 
     def _gui_init(self):
         """All GUI inititialisation (except dock) goes here"""
-        self._layout = pg.LayoutWidget()
-
-        box_size = QtCore.QRect(0, 0, 100, 100)
-
-        self._plot = pg.GraphicsLayoutWidget(border=(100, 100, 100))
-        self._layout.addWidget(self._plot, colspan=3)
+        self._plot = pg.GraphicsLayoutWidget(border=(80, 80, 80))
 
         self._detuning = pg.LabelItem("")
-        self._detuning.setText("Detuning", size="64pt")
+        self._detuning.setText("-", size="64pt")
         self._frequency = pg.LabelItem("")
-        self._frequency.setText("Frequency", size="12pt")
+        self._frequency.setText("-", size="12pt")
         self._name = pg.LabelItem("")
         self._name.setText("Name", size="32pt")
 
-        self._osa = self._plot.addPlot(title="Spectrum Analyser", colspan=3)
+        self._osa = pg.PlotItem()
+        self._osa.hideAxis('bottom')
+        # NB: Can't have grid shown without axes...
+        self._osa.showGrid(y=True)
         self._osa_curve = self._osa.plot(pen='y')
 
+        self._exposure = QtGui.QSpinBox()
+        self._exposure.setRange(0, 100)
+        self._exposure.setSuffix(" ms")
+
+        self._reference = QtGui.QDoubleSpinBox()
+        self._reference.setRange(0.0, 1000000.0)
+        self._reference.setDecimals(5)
+        self._reference.setSuffix(" THz")
+
+        self._lock = QtGui.QPushButton("Lock Switcher")
+        self._lock.setCheckable(True)
+        self._save = QtGui.QPushButton("Save Settings")
+
+    def _gui_layout(self):
+        """Place the initialised GUI items"""
+        self._plot.addItem(self._osa, colspan=3)
         self._plot.nextRow()
         self._plot.addItem(self._detuning, colspan=3)
         self._plot.nextRow()
         self._plot.addItem(self._name)
         self._plot.addItem(self._frequency, colspan=2)
 
-        self._exposure = QtGui.QSpinBox()
-        self._exposure.setRange(0, 100)
-        self._exposure.setSuffix(" ms")
-        self._exposure.setGeometry(box_size)
+        self._dock.addWidget(self._plot, colspan=7)
+        self._dock.addWidget(self._lock, row=1, col=1)
+        self._dock.addWidget(QtGui.QLabel("Reference Frequency"), row=1, col=3)
+        self._dock.addWidget(QtGui.QLabel("Wavemeter Exposure"), row=1, col=5)
+        self._dock.addWidget(self._save, row=2, col=1)
+        self._dock.addWidget(self._reference, row=2, col=3)
+        self._dock.addWidget(self._exposure, row=2, col=5)
 
-        self._reference = QtGui.QDoubleSpinBox()
-        self._reference.setRange(0.0, 1000000.0)
-        self._reference.setDecimals(5)
-        self._reference.setSuffix(" THz")
-        self._reference.setGeometry(box_size)
-
-        self._lock = QtGui.QPushButton("Lock Switcher")
-        self._lock.setCheckable(True)
-        self._save = QtGui.QPushButton("Save Settings")
-
-        self._layout.nextRow()
-        self._layout.addWidget(self._lock)
-        self._layout.addWidget(QtGui.QLabel("Reference Frequency"))
-        self._layout.addWidget(QtGui.QLabel("Wavemeter Exposure"))
-
-        self._layout.nextRow()
-        self._layout.addWidget(self._save, col=0)
-        self._layout.addWidget(self._reference, col=1)
-        self._layout.addWidget(self._exposure, col=2)
+        # Sort the layout to make the most of available space
+        self._plot.ci.setSpacing(2)
+        self._plot.ci.setContentsMargins(2,2,2,2)
+        self._dock.layout.setContentsMargins(0,0,0,4)
+        for i in [0,2,4,6]:
+            self._dock.layout.setColumnMinimumWidth(i, 4)
+        for i in [1,3,5]:
+            self._dock.layout.setColumnStretch(i,1)
 
     # -------------------------------------------------------------------------
     # Callbacks

@@ -1,14 +1,31 @@
 """
-Server specific extension of channel class
+Server specific implementation of channel class
 """
+import collections
 import weakref
 
 import diagnostics.common as common
 
 
-class ServerChannel(common.Channel):
+class Channel(common.JSONConfigurable):
     """
+    Stores information about a switcher channel.
+
+    - name: name for the channel (must be unique over *all* labs)
+    - reference: reference frequency value to use when calculating detuning
+    - exposure: integer exposure time (ms) to use for wavemeter
+    - number: physical channel number on switcher
+    - array: ccd array to use on wavemeter
+    - blue: true if blue laser - dictates inputs to use on DAQ card
     """
+    _attrs = collections.OrderedDict([
+                ('name', None),
+                ('reference', None),
+                ('exposure', None),
+                ('number', None),
+                ('array', None),
+                ('blue', None),
+            ])
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 

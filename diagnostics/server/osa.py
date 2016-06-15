@@ -8,6 +8,7 @@ import PyDAQmx
 from PyDAQmx.DAQmxFunctions import DAQError
 
 __all__ = ['OSATask',
+           'channel_setup',
            ]
 
 # Value for choosing no options for DAQmx functions

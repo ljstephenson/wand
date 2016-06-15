@@ -12,7 +12,7 @@ import diagnostics.server.osa as osa
 import diagnostics.server.wavemeter as wavemeter
 import diagnostics.server.fake as fake
 import diagnostics.common as common
-from diagnostics.server.channel import ServerChannel as Channel
+from diagnostics.server.channel import Channel
 
 DEFAULT_CFG_FILE = "./cfg/oldlab_server.json"
 

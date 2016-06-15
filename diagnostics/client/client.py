@@ -9,7 +9,7 @@ import sys
 import random
 
 import diagnostics.common as common
-from diagnostics.client.channel import ClientChannel
+from diagnostics.client.channel import Channel
 
 # TODO: should read filename from command line args
 CFG_FILE = "./cfg/oldlab_client.json"
@@ -21,6 +21,7 @@ class ClientBackend(common.JSONRPCPeer):
     _attrs = collections.OrderedDict([
                 ('name', None),
                 ('servers', None),
+                ('short_names', None),
             ])
 
     def __init__(self, cls, *args, **kwargs):
@@ -33,12 +34,15 @@ class ClientBackend(common.JSONRPCPeer):
         self.channels = collections.OrderedDict()
 
         if cls is None:
-            cls = ClientChannel
+            cls = Channel
+
+        # Have short_name->name mapping, also need inverse as well
+        self.name_map = {v:k for k,v in self.short_names.items()}
 
         for s in self.servers.values():
-            channels = s.get('channels', [])
-            for c in channels:
-                self.channels[c] = cls(self, cfg={'name':c})
+            for c in s.get('channels', []):
+                sname = self.name_map[c]
+                self.channels[c] = cls(self, cfg={'name':c, 'short_name':sname})
 
     def startup(self):
         """Place all startup methods here"""
@@ -226,3 +230,11 @@ class ClientBackend(common.JSONRPCPeer):
     def _server_request(self, server, *args, **kwargs):
         conn = self.conns_by_s[server]
         self.request(conn, *args, **kwargs)
+
+    # -------------------------------------------------------------------------
+    # Misc
+    #
+    def get_channel_by_short_name(self, short_name):
+        """Fetch the channel object using its short name"""
+        name = self.short_names[short_name]
+        return self.channels[name]

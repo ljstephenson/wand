@@ -6,11 +6,11 @@ import functools
 import collections
 
 from diagnostics.client.client import ClientBackend
-from diagnostics.client.channel import ClientChannel
+from diagnostics.client.channel import Channel
 
 import time
 
-class GUIChannel(ClientChannel):
+class GUIChannel(Channel):
     def __init__(self, *args, **kwargs):
 
         # GUI items must be initialised before values are set in super() call
@@ -30,8 +30,8 @@ class GUIChannel(ClientChannel):
         self._detuning.setText("-", size="64pt")
         self._frequency = pg.LabelItem("")
         self._frequency.setText("-", size="12pt")
-        self._name = pg.LabelItem("")
-        self._name.setText("Name", size="32pt")
+        self._short_name = pg.LabelItem("")
+        self._short_name.setText("Name", size="32pt")
 
         self._osa = pg.PlotItem()
         self._osa.hideAxis('bottom')
@@ -58,7 +58,7 @@ class GUIChannel(ClientChannel):
         self._plot.nextRow()
         self._plot.addItem(self._detuning, colspan=3)
         self._plot.nextRow()
-        self._plot.addItem(self._name)
+        self._plot.addItem(self._short_name)
         self._plot.addItem(self._frequency, colspan=2)
 
         self._dock.addWidget(self._plot, colspan=7)
@@ -130,19 +130,15 @@ class GUIChannel(ClientChannel):
     # Properties
     #
     @property
-    def name(self):
+    def short_name(self):
         return self._n
 
-    @name.setter
-    def name(self, val):
+    @short_name.setter
+    def short_name(self, val):
         if val is None:
             val = ""
         self._n = val
-        self._name.setText(val, color=self.color)
-        try:
-            self._name.setAttr('color', "5555ff")
-        except Exception as e:
-            print(e)
+        self._short_name.setText(val, color=self.color)
 
     @property
     def reference(self):
@@ -216,7 +212,7 @@ class GUIChannel(ClientChannel):
     @blue.setter
     def blue(self, val):
         self._blue = val
-        self._name.setText(self.name, color=self.color)
+        self._short_name.setText(self.short_name, color=self.color)
 
     @property
     def dock(self):
@@ -230,6 +226,7 @@ class ClientGUI(ClientBackend):
     _attrs = collections.OrderedDict([
                 ('name', None),
                 ('servers', None),
+                ('short_names', None),
                 ('layout', None),
             ])
     def __init__(self, *args, **kwargs):
@@ -244,7 +241,7 @@ class ClientGUI(ClientBackend):
             prev = None
             pos = 'bottom'
             for channel in row:
-                c = self.channels[channel]
+                c = self.get_channel_by_short_name(channel)
                 d = c.dock
                 self.area.addDock(d, position=pos, relativeTo=prev)
                 pos = 'right'

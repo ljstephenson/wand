@@ -9,8 +9,7 @@ import jsonrpc
 
 import time
 
-__all__ = ['Channel',
-           'JSONRPCPeer',
+__all__ = ['JSONRPCPeer',
            'JSONRPCConnection',
            'JSONStreamIterator',
            'JSONConfigurable',
@@ -158,37 +157,6 @@ class JSONConfigurable(object):
                     setattr(self, attr, _dict)
                 else:
                     setattr(self, attr, val)
-
-
-class Channel(JSONConfigurable):
-    """
-    Stores information about a switcher channel.
-
-    :attr name: name for the channel (chosen, must be unique per server)
-
-    :attr exposure: integer exposure time (ms) to use for wavemeter
-
-    :attr reference: reference frequency value to use when calculating detuning
-
-    :attr number: physical channel number on switcher
-
-    :attr array: ccd array to use on wavemeter
-
-    :attr blue: true if blue
-    """
-    # JSON configurable attributes
-    _attrs = collections.OrderedDict([
-                ('name', None),
-                ('reference', None),
-                ('exposure', None),
-                ('number', None),
-                ('array', None),
-                ('blue', None),
-            ])
-
-    @property
-    def detuning(self):
-        return (self.frequency - self.reference)
 
 
 class JSONRPCPeer(JSONConfigurable):

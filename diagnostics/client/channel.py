@@ -2,12 +2,11 @@
 Client specific extension of channel class
 """
 import collections
-from copy import copy
 
 import diagnostics.common as common
 
 
-class ClientChannel(common.Channel):
+class Channel(common.JSONConfigurable):
     """
     Client implementation of channel
 
@@ -16,6 +15,19 @@ class ClientChannel(common.Channel):
     edit its instance of the channel, but instead communicates the change to
     the server, which echoes the change to all listening clients.
     """
+    _attrs = collections.OrderedDict([
+                ('name', None),
+                ('short_name', None),
+                ('reference', None),
+                ('exposure', None),
+                ('number', None),
+                ('array', None),
+                ('blue', None),
+            ])
     def __init__(self, client, *args, **kwargs):
         self.client = client
         super().__init__(*args, **kwargs)
+
+    @property
+    def detuning(self):
+        return (self.frequency - self.reference)

@@ -237,6 +237,13 @@ class ClientGUI(ClientBackend):
 
         super().__init__(GUIChannel, *args, **kwargs)
 
+        self.place_channels()
+
+    def show(self):
+        self.win.show()
+
+    def place_channels(self):
+        """Place the channel docks into the dock area"""
         for row in self.layout:
             prev = None
             pos = 'bottom'
@@ -246,6 +253,3 @@ class ClientGUI(ClientBackend):
                 self.area.addDock(d, position=pos, relativeTo=prev)
                 pos = 'right'
                 prev = d
-
-    def show(self):
-        self.win.show()

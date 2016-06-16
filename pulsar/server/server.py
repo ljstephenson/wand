@@ -14,7 +14,6 @@ import pulsar.server.fake as fake
 import pulsar.common as common
 from pulsar.server.channel import Channel
 
-DEFAULT_CFG_FILE = "./cfg/oldlab_server.json"
 
 log = logging.getLogger(__name__)
 class Server(common.JSONRPCPeer):

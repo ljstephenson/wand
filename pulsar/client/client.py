@@ -11,8 +11,6 @@ import random
 import pulsar.common as common
 from pulsar.client.channel import Channel
 
-# TODO: should read filename from command line args
-CFG_FILE = "./cfg/oldlab_client.json"
 
 class ClientBackend(common.JSONRPCPeer):
     # List of configurable attributes (maintains order when dumping config)

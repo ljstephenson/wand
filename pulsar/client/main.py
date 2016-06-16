@@ -9,18 +9,17 @@ import pulsar.client.clientgui as clientgui
 
 def parse_args(argv):
     parser = argparse.ArgumentParser()
-    parser.add_argument("-f", "--file", help="Filename to load JSON from", default=client.CFG_FILE)
+    parser.add_argument("filename", help="JSON configuration file")
     return parser.parse_args(argv)
 
 def main(argv):
     args = parse_args(argv)
-    fname = args.file
 
     app = QtGui.QApplication([])
     loop = QEventLoop(app)
     asyncio.set_event_loop(loop)
 
-    c = clientgui.ClientGUI(fname=fname)
+    c = clientgui.ClientGUI(fname=args.filename)
     c.startup()
 
     # Main event loop running forever

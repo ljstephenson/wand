@@ -8,7 +8,7 @@ import pulsar.server.wavemeter as wavemeter
 
 def parse_args(argv):
     parser = argparse.ArgumentParser("Python powered Wavemeter server")
-    parser.add_argument("-f", "--file", help="Filename to load JSON from", default=server.DEFAULT_CFG_FILE)
+    parser.add_argument("filename", help="JSON configuration file")
     parser.add_argument("-s", "--simulate", help="Run as simulation", action='store_true')
     group = parser.add_mutually_exclusive_group()
     group.add_argument("-v", "--verbose", help="Increase output verbosity", action="count")
@@ -39,7 +39,7 @@ def main(argv):
     loop = asyncio.get_event_loop()
 
     log.info("Initialising TCP server... ")
-    s = server.Server(fname=args.file, simulate=args.simulate)
+    s = server.Server(fname=args.filename, simulate=args.simulate)
     s.startup()
     log.info("Done initialising TCP server")
 

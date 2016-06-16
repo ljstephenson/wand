@@ -6,14 +6,14 @@ import logging
 import wand.server.server as server
 import wand.server.wavemeter as wavemeter
 
-def parse_args(argv):
+def parse_args():
     parser = argparse.ArgumentParser("Python powered Wavemeter server")
     parser.add_argument("filename", help="JSON configuration file")
     parser.add_argument("-s", "--simulate", help="Run as simulation", action='store_true')
     group = parser.add_mutually_exclusive_group()
     group.add_argument("-v", "--verbose", help="Increase output verbosity", action="count")
     group.add_argument("-q", "--quiet", help="Decrease output verbosity", action="count")
-    return parser.parse_args(argv)
+    return parser.parse_args()
 
 def set_verbosity(args):
     # Default log level is warning
@@ -26,8 +26,8 @@ def set_verbosity(args):
         level = new_level if new_level <= logging.CRITICAL else logging.CRITICAL
     logging.basicConfig(format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",level=level)
 
-def main(argv):
-    args = parse_args(argv)
+def main():
+    args = parse_args()
     set_verbosity(args)
     log = logging.getLogger(__name__)
 
@@ -64,4 +64,4 @@ def main(argv):
         sys.exit()
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    main()

@@ -17,14 +17,7 @@ setup(name='wand',
     },
     install_requires=[
         'influxdb>=2',
-        'json-rpc',
-        'numpy>=1',
+        'json-rpc>=1.10',
         'PyDAQmx>=1',
-        'pyqt',
-        'pyqtgraph',
-        'quamash'
-    ],
-    dependency_links=[
-        'https://github.com/pavlov99/json-rpc/zipball/master'
     ]
 )

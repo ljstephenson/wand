@@ -1,3 +1,3 @@
 """
-PULSAR - Python Unified LaSer AnalyseR
+WAND - Wavemeter Analysis 'N' Display
 """

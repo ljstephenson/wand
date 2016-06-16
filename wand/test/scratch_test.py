@@ -1,5 +1,5 @@
-#from pulsar.server.osa import OSATask
-from pulsar.server.wavemeter import WavemeterTask, init, switch
+#from wand.server.osa import OSATask
+from wand.server.wavemeter import WavemeterTask, init, switch
 import asyncio
 import time
 import PyDAQmx

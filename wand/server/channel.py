@@ -4,7 +4,7 @@ Server specific implementation of channel class
 import collections
 import weakref
 
-import pulsar.common as common
+import wand.common as common
 
 
 class Channel(common.JSONConfigurable):

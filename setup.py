@@ -1,16 +1,16 @@
 from setuptools import setup
 
 scripts = [
-    "pulsar_server=pulsar.server:main",
-    "pulsar_client=pulsar.client:main",
+    "wand_server=wand.server:main",
+    "wand_client=wand.client:main",
 ]
 
-setup(name='pulsar',
+setup(name='wand',
     version='0.1',
-    packages=['pulsar',
-              'pulsar.common',
-              'pulsar.client',
-              'pulsar.server',
+    packages=['wand',
+              'wand.common',
+              'wand.client',
+              'wand.server',
              ],
     entry_points={
         "console_scripts": scripts,

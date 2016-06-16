@@ -3,7 +3,7 @@ Client specific extension of channel class
 """
 import collections
 
-import pulsar.common as common
+import wand.common as common
 
 
 class Channel(common.JSONConfigurable):

@@ -1,4 +1,4 @@
-from pulsar.server.osa import OSATask
+from wand.server.osa import OSATask
 import asyncio
 import time
 import sys

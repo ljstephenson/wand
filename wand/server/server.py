@@ -8,11 +8,11 @@ import weakref
 import logging
 from influxdb import InfluxDBClient
 
-import pulsar.server.osa as osa
-import pulsar.server.wavemeter as wavemeter
-import pulsar.server.fake as fake
-import pulsar.common as common
-from pulsar.server.channel import Channel
+import wand.server.osa as osa
+import wand.server.wavemeter as wavemeter
+import wand.server.fake as fake
+import wand.common as common
+from wand.server.channel import Channel
 
 
 log = logging.getLogger(__name__)

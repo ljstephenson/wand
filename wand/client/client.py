@@ -8,8 +8,8 @@ import numpy as np
 import sys
 import random
 
-import pulsar.common as common
-from pulsar.client.channel import Channel
+import wand.common as common
+from wand.client.channel import Channel
 
 
 class ClientBackend(common.JSONRPCPeer):

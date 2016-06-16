@@ -1,8 +1,8 @@
 from setuptools import setup
 
 scripts = [
-    "wand_server=wand.server:main",
-    "wand_client=wand.client:main",
+    "wand_server=wand.server.main:main",
+    "wand_client=wand.client.main:main",
 ]
 
 setup(name='wand',

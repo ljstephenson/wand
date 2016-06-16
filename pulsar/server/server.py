@@ -47,7 +47,8 @@ class Server(common.JSONRPCPeer):
         self.configure_osa()
 
         # Initialise influxdb client
-        self.influx_cl = InfluxDBClient(**self.influxdb)
+        if not self.simulate:
+            self.influx_cl = InfluxDBClient(**self.influxdb)
 
         # Generator for cycling through configured channels infinitely
         self.ch_gen = itertools.cycle(self.channels)

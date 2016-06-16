@@ -3,7 +3,7 @@ Client specific extension of channel class
 """
 import collections
 
-import diagnostics.common as common
+import pulsar.common as common
 
 
 class Channel(common.JSONConfigurable):

@@ -8,11 +8,11 @@ import weakref
 import logging
 from influxdb import InfluxDBClient
 
-import diagnostics.server.osa as osa
-import diagnostics.server.wavemeter as wavemeter
-import diagnostics.server.fake as fake
-import diagnostics.common as common
-from diagnostics.server.channel import Channel
+import pulsar.server.osa as osa
+import pulsar.server.wavemeter as wavemeter
+import pulsar.server.fake as fake
+import pulsar.common as common
+from pulsar.server.channel import Channel
 
 DEFAULT_CFG_FILE = "./cfg/oldlab_server.json"
 

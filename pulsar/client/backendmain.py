@@ -9,7 +9,7 @@ from PyQt4 import QtGui, QtCore
 from quamash import QEventLoop
 import asyncio
 
-import diagnostics.client.client as client
+import pulsar.client.client as client
 
 def parse_args(argv):
     parser = argparse.ArgumentParser()

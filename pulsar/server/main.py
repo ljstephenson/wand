@@ -3,8 +3,8 @@ import argparse
 import asyncio
 import logging
 
-import diagnostics.server.server as server
-import diagnostics.server.wavemeter as wavemeter
+import pulsar.server.server as server
+import pulsar.server.wavemeter as wavemeter
 
 def parse_args(argv):
     parser = argparse.ArgumentParser("Python powered Wavemeter server")

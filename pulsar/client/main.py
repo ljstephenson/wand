@@ -4,8 +4,8 @@ from PyQt4 import QtGui
 from quamash import QEventLoop
 import asyncio
 
-import diagnostics.client.client as client
-import diagnostics.client.clientgui as clientgui
+import pulsar.client.client as client
+import pulsar.client.clientgui as clientgui
 
 def parse_args(argv):
     parser = argparse.ArgumentParser()

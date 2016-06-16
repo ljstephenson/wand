@@ -8,8 +8,8 @@ import numpy as np
 import sys
 import random
 
-import diagnostics.common as common
-from diagnostics.client.channel import Channel
+import pulsar.common as common
+from pulsar.client.channel import Channel
 
 # TODO: should read filename from command line args
 CFG_FILE = "./cfg/oldlab_client.json"

@@ -5,8 +5,8 @@ import numpy as np
 import functools
 import collections
 
-from diagnostics.client.client import ClientBackend
-from diagnostics.client.channel import Channel
+from pulsar.client.client import ClientBackend
+from pulsar.client.channel import Channel
 
 import time
 

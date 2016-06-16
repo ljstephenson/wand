@@ -17,10 +17,10 @@ setup(name='wand',
     },
     install_requires=[
         'influxdb>=2',
-        'jsonrpc',
+        'json-rpc',
         'numpy>=1',
         'PyDAQmx>=1',
-        'pyqt>=4',
+        'pyqt',
         'pyqtgraph',
         'quamash'
     ],

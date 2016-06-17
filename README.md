@@ -59,12 +59,12 @@ This will install all the other dependencies at the same time.
 If you are going to be developing WAnD, you want to have an editable
 installation. Clone the repo and install it:
 ```
-git clone https://github.com/ljstephenson <source-directory>
+git clone https://github.com/ljstephenson/wand <source-directory>
 pip install -e <source-directory>
 ```
 
-Please develop on a branch other than master so that you don't break things for
-other people trying to install it!
+Please develop on a branch other than master (e.g. dev) so that you don't break
+things for other people trying to install it!
 
 ## Testing
 

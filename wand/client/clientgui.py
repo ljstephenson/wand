@@ -1,4 +1,4 @@
-from PyQt4 import QtGui
+from . import QtGui
 import pyqtgraph as pg
 import pyqtgraph.dockarea as dock
 import numpy as np

@@ -1,19 +1,19 @@
 import sys
 import argparse
-from PyQt4 import QtGui
+from . import QtGui
 from quamash import QEventLoop
 import asyncio
 
 import wand.client.client as client
 import wand.client.clientgui as clientgui
 
-def parse_args(argv):
+def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("filename", help="JSON configuration file")
-    return parser.parse_args(argv)
+    return parser.parse_args()
 
-def main(argv):
-    args = parse_args(argv)
+def main():
+    args = parse_args()
 
     app = QtGui.QApplication([])
     loop = QEventLoop(app)
@@ -40,4 +40,4 @@ def main(argv):
     sys.exit()
 
 if __name__ == "__main__":
-    main(sys.argv[1:])
+    main()

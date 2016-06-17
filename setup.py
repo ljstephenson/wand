@@ -19,5 +19,6 @@ setup(name='wand',
         'influxdb>=2',
         'json-rpc>=1.10',
         'PyDAQmx>=1',
+        'quamash',
     ]
 )

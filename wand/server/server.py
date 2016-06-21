@@ -38,6 +38,7 @@ class Server(common.JSONRPCPeer):
                 ('channels', Channel),
             ])
     interval = 10
+    log_interval = {'wavemeter':5, 'osa':600}
 
     def __init__(self, simulate=False, **kwargs):
         super().__init__(**kwargs)
@@ -66,10 +67,16 @@ class Server(common.JSONRPCPeer):
         # Measurement tasks
         self.tasks = []
 
+        # Store last logging time of wavelength and osa trace
+        self.last_log = collection.OrderedDict()
+        for c in self.channels:
+            self.last_log[c] = {"wavemeter":None, "osa":None}
+
     def get_switcher(self):
         """Factory to set the 'switch' method to do the right thing"""
         if self.simulate:
-            self.switch = lambda c: None
+            # lambda function must have an argument
+            self.switch = lambda channel: None
         elif self.switcher['name'] == "wavemeter":
             self.switch = wavemeter.switch
         elif self.switcher['name'] == "leoni":
@@ -297,10 +304,8 @@ class Server(common.JSONRPCPeer):
         """Handles data sending and logs frequency occasionally"""
         while True:
             data = await self.data_q.get()
-            if data['source'] == 'wavemeter' and not self.simulate:
-                self.loop.call_soon(self.send_influx, data)
+            self.loop.call_soon(self.log_data, data)
             self.loop.call_soon(self.send_data, data)
-            #self.loop.call_soon(self.basic_send_data, data)
 
     def basic_send_data(self, data):
         """Sends data to all clients indiscriminately"""
@@ -341,6 +346,28 @@ class Server(common.JSONRPCPeer):
             t = self.tasks.pop()
             t.StopTask()
             t.ClearTask()
+
+    # -------------------------------------------------------------------------
+    # Data logging
+    #
+    def log_data(self, data):
+        """Choose whether or not to log a data point based on last log"""
+        channel = data['channel']
+        source = data['source']
+        now = self.loop.time()
+        last = self.last_log[channel][source]
+        if last is not None and now - last > self.log_interval[source]:
+            self.last_log[channel][source]
+            self._log("Logging data for {} from {}".format(channel, source))
+            if not self.simulate:
+                if source == 'osa':
+                    self.osa_log(data, now)
+                else:
+                    self.send_influx(data)
+
+    def osa_log(self, data, time):
+        """Save the osa data"""
+        pass
 
     # -------------------------------------------------------------------------
     # InfluxDB

@@ -68,7 +68,7 @@ class Server(common.JSONRPCPeer):
         self.tasks = []
 
         # Store last logging time of wavelength and osa trace
-        self.last_log = collection.OrderedDict()
+        self.last_log = collections.OrderedDict()
         for c in self.channels:
             self.last_log[c] = {"wavemeter":None, "osa":None}
 
@@ -356,9 +356,9 @@ class Server(common.JSONRPCPeer):
         source = data['source']
         now = self.loop.time()
         last = self.last_log[channel][source]
-        if last is not None and now - last > self.log_interval[source]:
-            self.last_log[channel][source]
-            self._log("Logging data for {} from {}".format(channel, source))
+        if last is None or now - last > self.log_interval[source]:
+            self.last_log[channel][source] = now
+            self._log.debug("Logging data for {} from {}".format(channel, source))
             if not self.simulate:
                 if source == 'osa':
                     self.osa_log(data, now)

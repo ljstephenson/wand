@@ -12,7 +12,7 @@ import time
 __all__ = [
     'with_log',
     'add_verbosity_args',
-    'set_verbosity',
+    'get_verbosity_level',
     'JSONRPCPeer',
     'JSONRPCConnection',
     'JSONStreamIterator',

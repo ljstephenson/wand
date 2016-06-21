@@ -4,6 +4,7 @@ Wavemeter interface
 import ctypes
 import asyncio
 import enum
+from wand.common import with_log
 
 __all__ = ['WavemeterError',
            'WavemeterTask',
@@ -81,7 +82,7 @@ def switch(number=1):
 # Callback type to be defined. This must be in scope as long as the callback is
 # in use, so just define it here
 CALLBACK = ctypes.CFUNCTYPE(None, ctypes.c_long, ctypes.c_long, ctypes.c_double)
-
+@with_log
 class WavemeterTask(object):
     """
     Instantiate a new task every channel switch
@@ -95,6 +96,7 @@ class WavemeterTask(object):
     """
     def __init__(self, loop, queue, channel):
         """initialise"""
+        self._log.debug("Creating Task object for channel: {}".format(channel.name))
         self.loop = loop
         self.queue = queue
         self.channel = channel
@@ -118,7 +120,7 @@ class WavemeterTask(object):
             # Register the callback function
             retval = lib.Instantiate(cInstNotification, cNotifyInstallCallback,
                                      self.get_cb(), 0)
-            print("callback registering returned {}".format(retval))
+            self._log.debug("Callback registering returned {}".format(retval))
 
     def StopTask(self):
         """Stop collections"""

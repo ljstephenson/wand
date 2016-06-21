@@ -6,7 +6,12 @@ import weakref
 
 import wand.common as common
 
+__all__ = [
+    'Channel',
+]
 
+
+@common.with_log
 class Channel(common.JSONConfigurable):
     """
     Stores information about a switcher channel.
@@ -32,8 +37,10 @@ class Channel(common.JSONConfigurable):
         self.clients = weakref.WeakValueDictionary()
 
     def add_client(self, client, conn):
+        self._log.debug("{}: Adding client: {}".format(self.name, client))
         self.clients[client] = conn
 
     def remove_client(self, client):
         if client in self.clients:
+            self._log.debug("{}: Removing client: {}".format(self.name, client))
             del self.clients[client]

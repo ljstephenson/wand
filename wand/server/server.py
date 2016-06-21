@@ -5,7 +5,6 @@ import itertools
 import asyncio
 import collections
 import weakref
-import logging
 from influxdb import InfluxDBClient
 
 import wand.server.osa as osa
@@ -15,7 +14,7 @@ import wand.common as common
 from wand.server.channel import Channel
 
 
-log = logging.getLogger(__name__)
+@common.with_log
 class Server(common.JSONRPCPeer):
     """
     Main class for laser diagnostics.
@@ -90,12 +89,14 @@ class Server(common.JSONRPCPeer):
         self._next = self.loop.call_soon(self.select)
         # Make sure we're taking items off the queue
         self.loop.create_task(self.consume())
+        self._log.info("Ready")
 
     def shutdown(self):
         self.cancel_pending_tasks()
         self.close_connections()
         self.tcp_server.close()
         self.loop.run_until_complete(self.tcp_server.wait_closed())
+        self._log.info("Shutdown finished")
 
     # -------------------------------------------------------------------------
     # Network operations
@@ -108,14 +109,14 @@ class Server(common.JSONRPCPeer):
 
         addr = writer.get_extra_info('peername')
         self.connections[addr] = conn
-        log.info("Incoming connection from {}".format(addr))
+        self._log.info("Incoming connection from {}".format(addr))
 
         def register_connection(result):
             if result not in self.clients:
-                log.info("Connection from {} registered: {}".format(addr, result))
+                self._log.info("Connection from {} registered: {}".format(addr, result))
                 self.clients[result] = conn
             else:
-                log.info("Connection from {} rejected: name '{}' is already registered".format(addr, result))
+                self._log.info("Connection from {} rejected: name '{}' is already registered".format(addr, result))
                 self.notify(conn, 'connection_rejected',
                             params={"server":self.name, "reason":"Client with same name already connected"})
         self.request(conn, 'get_name', cb=register_connection)
@@ -123,7 +124,7 @@ class Server(common.JSONRPCPeer):
         def client_disconnected(future):
             # Just removing connection from connections should be enough -
             # all the other references are weak
-            log.info("Connection unregistered: {}".format(addr))
+            self._log.info("Connection unregistered: {}".format(addr))
             conn = self.connections.pop(addr)
             conn.close()
             del conn
@@ -149,7 +150,7 @@ class Server(common.JSONRPCPeer):
             channel = next(self.ch_gen)
         c = self.channels[channel]
 
-        log.debug("Selecting channel '{}'".format(channel))
+        self._log.info("Selecting channel: {}".format(channel))
         self.switch(c.number)
         self.new_tasks(c)
         self.start_tasks()
@@ -353,8 +354,9 @@ class Server(common.JSONRPCPeer):
         channel = data['channel']
         d = data['data']
         if d > 0:
-            frequency = d
-            detuning = (frequency - self.channels[channel].reference)*1e6
+            # Give all data in Hz, let influxdb handle any conversion
+            frequency = d * 1e12
+            detuning = (d - self.channels[channel].reference)*1e12
             error = None
         else:
             frequency = None

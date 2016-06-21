@@ -1,15 +1,20 @@
 import numpy as np
 import numpy.random as random
 
-__all__ = ['FakeOSATask',
-           'FakeWavemeterTask',
-           ]
+from wand.common import with_log
+
+__all__ = [
+    'FakeOSATask',
+    'FakeWavemeterTask',
+]
 
 _FREQUENCY = 10
 
+@with_log
 class FakeTask(object):
     """Fake task that mimics data production but does not access hardware"""
     def __init__(self, loop, queue, channel):
+        self._log.debug("Creating Task object for channel: {}".format(channel.name))
         self.loop = loop
         self.queue = queue
         self.channel = channel
@@ -38,6 +43,8 @@ class FakeTask(object):
     def ClearTask(self):
         pass
 
+
+@with_log
 class OSATask(FakeTask):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -76,6 +83,8 @@ class OSATask(FakeTask):
             return 0.9*w**2/((x-x0)**2 + w**2)
         return lorentzian
 
+
+@with_log
 class WavemeterTask(FakeTask):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

@@ -12,6 +12,7 @@ import wand.common as common
 from wand.client.channel import Channel
 
 
+@common.with_log
 class ClientBackend(common.JSONRPCPeer):
     # List of configurable attributes (maintains order when dumping config)
     # These will all be initialised during __init__ in the call to 
@@ -47,13 +48,14 @@ class ClientBackend(common.JSONRPCPeer):
         self.running = True
         for s in self.servers:
             self.loop.run_until_complete(self.server_connect(s))
-
+        self._log.info("Ready")
 
     def shutdown(self):
         """Place all shutdown methods here"""
         self.running = False
         self.cancel_pending_tasks()
         self.close_connections()
+        self._log.info("Shutdown finished")
 
     # -------------------------------------------------------------------------
     # Network operations
@@ -68,7 +70,7 @@ class ClientBackend(common.JSONRPCPeer):
         try:
             reader, writer = await asyncio.open_connection(s['host'], s['port'])
         except (ConnectionRefusedError, WindowsError) as e:
-            print("Connection failed: {}".format(e))
+            self._log.error("Connection failed: {}".format(e))
             self.loop.create_task(self.server_reconnect(server, attempt))
         else:
             conn = common.JSONRPCConnection(self.handle_rpc, reader, writer)
@@ -88,7 +90,7 @@ class ClientBackend(common.JSONRPCPeer):
 
     def server_disconnected(self, server):
         """Called when server disconnects"""
-        print("Server {} disconnected".format(server))
+        self._log.info("Server {} disconnected".format(server))
         conn = self.conns_by_s.pop(server, None)
         if conn:
             conn.close()
@@ -100,16 +102,16 @@ class ClientBackend(common.JSONRPCPeer):
         backoff = 10 * attempt * random.random()
         attempt = attempt + 1
         if attempt < 5:
-            print("Attempting reconnect after {:.1f}s".format(backoff))
+            self._log.info("Attempting reconnect after {:.1f}s".format(backoff))
             await asyncio.sleep(backoff)
             await self.server_connect(server, attempt)
         else:
             self.loop.stop()
-            print("Aborted reconnect to '{}': too many failures".format(server))
+            self._log.error("Aborted reconnect to '{}': too many failures".format(server))
 
     def abort_connection(self, server, reason):
         self.loop.stop()
-        print("'{}' refused connection: {}".format(server, reason))
+        self._log.error("'{}' refused connection: {}".format(server, reason))
 
     def close_connections(self):
         while self.conns_by_s:

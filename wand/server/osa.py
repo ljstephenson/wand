@@ -4,12 +4,13 @@ Optical Spectrum Analyser interface for data acquisition card.
 import numpy as np
 import ctypes
 import PyDAQmx
-
 from PyDAQmx.DAQmxFunctions import DAQError
+from wand.common import with_log
 
-__all__ = ['OSATask',
-           'channel_setup',
-           ]
+__all__ = [
+    'OSATask',
+    'channel_setup',
+]
 
 # Value for choosing no options for DAQmx functions
 NO_OPTIONS = 0
@@ -33,6 +34,7 @@ def channel_setup(config):
     TRIG_RED = config['red']['trigger'].encode()
 
 
+@with_log
 class OSATask(PyDAQmx.Task):
     """
     Task object for collecting data from the Optical Spectrum Analyser
@@ -43,6 +45,7 @@ class OSATask(PyDAQmx.Task):
         """
         super().__init__()
 
+        self._log.debug("Creating Task object for channel: {}".format(channel.name))
         self.loop = loop
         self.queue = queue
         self.channel = channel
@@ -85,8 +88,7 @@ class OSATask(PyDAQmx.Task):
             self.ReadAnalogF64(SAMPLES, TIMEOUT, PyDAQmx.DAQmx_Val_GroupByScanNumber, data,
                             SAMPLES, ctypes.byref(np.ctypeslib.as_ctypes(_read)), None)
         except Exception as e:
-            print("DAQMX READ FAILED")
-            print(e)
+            self._log.error("Read Error: {}".format(e))
 
         # Multiply by 10000 and cast to int to truncate data
         scale = 1e4
@@ -122,7 +124,7 @@ class OSATask(PyDAQmx.Task):
             pass
 
     def DoneCallback(self, status):
-        print("Status: {}".format(status))
+        self._log.debug("Done: Status: {}".format(status))
 
         # Required
         return 0

@@ -6,15 +6,45 @@ import ctypes
 import asyncio
 import json
 import jsonrpc
-
+import logging
 import time
 
-__all__ = ['JSONRPCPeer',
-           'JSONRPCConnection',
-           'JSONStreamIterator',
-           'JSONConfigurable',
-           ]
+__all__ = [
+    'with_log',
+    'add_verbosity_args',
+    'set_verbosity',
+    'JSONRPCPeer',
+    'JSONRPCConnection',
+    'JSONStreamIterator',
+    'JSONConfigurable',
+]
 
+
+def with_log(cls):
+	"""Decorator to add a logger to a class."""
+	setattr(cls, '_log', logging.getLogger(cls.__module__ + '.' + cls.__qualname__))
+	return cls
+
+def add_verbosity_args(parser)
+    """Add args for verbose/quiet to an argparser"""
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("-v", "--verbose", help="Increase output verbosity", action="count")
+    group.add_argument("-q", "--quiet", help="Decrease output verbosity", action="count")
+
+def set_verbosity(args):
+    """Set logging level given parsed args"""
+    # Default log level is warning
+    level = logging.WARNING
+    if args.verbose:
+        new_level = (logging.WARNING - 10*args.verbose)
+        level = new_level if new_level >= logging.DEBUG else logging.DEBUG
+    elif args.quiet:
+        new_level = (logging.WARNING + 10*args.quiet)
+        level = new_level if new_level <= logging.CRITICAL else logging.CRITICAL
+    logging.basicConfig(format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",level=level)
+
+
+@with_log
 class JSONConfigurable(object):
     """
     Base class for objects which can be configured with JSON
@@ -270,17 +300,15 @@ class JSONRPCPeer(JSONConfigurable):
         elif 'result' in obj:
             cb(obj['result'])
         else:
-            # Malformed response: log an error
-            print("malformed response")
+            self._log.error("Malformed RPC response")
 
     def _error_handler(self, error):
         """Log errors"""
-        print("called error_handler with {}".format(error))
+        self._log.error("RPC error:{}".format(error))
 
     def _result_handler(self, result):
         """Default to logging successes"""
-        pass
-        # print("called result_handler with {}".format(result))
+        self._log.debug("RPC returned:{}".format(result))
 
     @property
     def next_id(self):

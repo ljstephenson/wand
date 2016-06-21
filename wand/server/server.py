@@ -9,6 +9,7 @@ from influxdb import InfluxDBClient
 
 import wand.server.osa as osa
 import wand.server.wavemeter as wavemeter
+import wand.server.switcher as switcher
 import wand.server.fake as fake
 import wand.common as common
 from wand.server.channel import Channel
@@ -71,10 +72,9 @@ class Server(common.JSONRPCPeer):
             self.switch = lambda c: None
         elif self.switcher['name'] == "wavemeter":
             self.switch = wavemeter.switch
-        elif self.switcher['name'] == "ethernet_switcher":
-            pass
-            # self.sw = ethernetswitchermodule.Switcher(**self.switcher['kwargs'])
-            # self.switch = self.sw.switch
+        elif self.switcher['name'] == "leoni":
+            self._switcher = switcher.LeoniSwitcher(**self.switcher['kwargs'])
+            self.switch = self._switcher.setChannel
 
     def configure_osa(self):
         """Set the input and trigger channels to be used on the osa"""

@@ -25,7 +25,7 @@ def with_log(cls):
 	setattr(cls, '_log', logging.getLogger(cls.__module__ + '.' + cls.__qualname__))
 	return cls
 
-def add_verbosity_args(parser)
+def add_verbosity_args(parser):
     """Add args for verbose/quiet to an argparser"""
     group = parser.add_mutually_exclusive_group()
     group.add_argument("-v", "--verbose", help="Increase output verbosity", action="count")

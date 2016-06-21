@@ -31,7 +31,7 @@ def add_verbosity_args(parser):
     group.add_argument("-v", "--verbose", help="Increase output verbosity", action="count")
     group.add_argument("-q", "--quiet", help="Decrease output verbosity", action="count")
 
-def set_verbosity(args):
+def get_verbosity_level(args):
     """Set logging level given parsed args"""
     # Default log level is warning
     level = logging.WARNING
@@ -41,7 +41,7 @@ def set_verbosity(args):
     elif args.quiet:
         new_level = (logging.WARNING + 10*args.quiet)
         level = new_level if new_level <= logging.CRITICAL else logging.CRITICAL
-    logging.basicConfig(format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",level=level)
+    return level
 
 
 @with_log

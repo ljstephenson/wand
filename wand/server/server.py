@@ -193,6 +193,7 @@ class Server(common.JSONRPCPeer):
         """
         Switches to named channel indefinitely
         """
+        self._log.debug("Locking switcher to {}".format(channel))
         if self._next:
             self.loop.call_soon(self._next.cancel)
         self.locked = channel
@@ -201,6 +202,7 @@ class Server(common.JSONRPCPeer):
 
     def rpc_unlock(self):
         """Resume normal switching"""
+        self._log.debug("Unlocking switcher")
         self.locked = False
         self._next = self.loop.call_soon(self.select)
         self.loop.call_soon(self.notify_unlocked)
@@ -246,6 +248,7 @@ class Server(common.JSONRPCPeer):
 
     def rpc_save_channel_settings(self, channel):
         """Save the currently stored channel config to file"""
+        self._log.debug("Saving {} settings".format(channel))
         # Get channel settings
         cfg = self.channels[channel].to_dict()
         update = {'channels':{channel:cfg}}

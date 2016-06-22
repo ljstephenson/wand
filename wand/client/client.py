@@ -48,6 +48,7 @@ class ClientBackend(common.JSONRPCPeer):
         self.running = True
         for s in self.servers:
             self.loop.run_until_complete(self.server_connect(s))
+        self.do_nothing()
         self._log.info("Ready")
 
     def shutdown(self):
@@ -164,6 +165,14 @@ class ClientBackend(common.JSONRPCPeer):
         for c in unlocked:
             c.unlock()
 
+    def rpc_paused(self, server, pause):
+        toolbar = self.toolbars[server]
+        toolbar.set_paused(pause)
+
+    def rpc_fast(self, server, fast):
+        toolbar = self.toolbars[server]
+        toolbar.set_fast(fast)
+
     def rpc_connection_rejected(self, server, reason):
         """Called by server to indicate that the connection was rejected"""
         # Deliberately not called connection_refused - in this case the
@@ -215,6 +224,19 @@ class ClientBackend(common.JSONRPCPeer):
         method = "register_client"
         params = {"client":self.name, "channels":s.get('channels', [])}
         self._server_request(server, method, params, cb=update_channels)
+
+    def request_echo(self, server, string):
+        s = self.servers.get(server, {})
+        method = "echo"
+        params = {"s":string}
+        self._server_request(server, method, params)
+
+    def request_pause(self, server, pause):
+        s = self.servers.get(server, {})
+        method = "pause"
+        params = {"pause":pause}
+        self._server_request(server, method, params)
+
 
     # -------------------------------------------------------------------------
     # Helpers for channel/server requests

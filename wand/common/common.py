@@ -255,6 +255,14 @@ class JSONRPCPeer(JSONConfigurable):
         else:
             self.loop.create_task(self._response_handler(obj))
 
+    def do_nothing(self):
+        """Keeps the loop occupied and responsive to CTRL+C"""
+        async def sleep():
+            await asyncio.sleep(1)
+            print("s", end='', flush=True)
+            self.loop.create_task(sleep())
+        self.loop.create_task(sleep())
+
     # -------------------------------------------------------------------------
     # Internal functions
     #
@@ -398,16 +406,15 @@ class JSONStreamIterator(object):
 
     async def _fetch_object(self):
         obj = None
-        r = 0.0
-        n = 0
         while not obj:
             try:
-                t = time.time()
                 data = await self.reader.read(2**12)
-                r += time.time()-t
-                n += 1
+                 # print("*", end='', flush=True)
             except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError) as e:
                 # print("got a connection error")
+                data = None
+            except AttributeError:
+                # Reader destroyed before finished
                 data = None
 
             if data:
@@ -423,8 +430,9 @@ class JSONStreamIterator(object):
                     self.buffer = message[end:]
             else:
                 # EOF or error
-                self.reader.feed_eof()
+                if self.reader is not None:
+                    self.reader.feed_eof()
                 return None
-        # print("R:  {:.4f}s, reads: {}".format(r, n))
+        # print("!", end='', flush=True)
         return obj
 

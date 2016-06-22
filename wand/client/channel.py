@@ -31,3 +31,9 @@ class Channel(common.JSONConfigurable):
     @property
     def detuning(self):
         return (self.frequency - self.reference)
+
+    def lock(self):
+        pass
+
+    def unlock(self):
+        pass

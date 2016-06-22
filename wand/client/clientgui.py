@@ -48,7 +48,7 @@ class GUIChannel(Channel):
         self._reference.setDecimals(5)
         self._reference.setSuffix(" THz")
 
-        self._lock = QtGui.QPushButton("Lock Switcher")
+        self._lock = QtGui.QPushButton("View")
         self._lock.setCheckable(True)
         self._save = QtGui.QPushButton("Save Settings")
 
@@ -106,10 +106,8 @@ class GUIChannel(Channel):
     def toggle_lock(self):
         if self._lock.isChecked():
             self.client.request_lock(self.name)
-            self._lock.setText("Unlock Switcher")
         else:
             self.client.request_unlock(self.name)
-            self._lock.setText("Lock Switcher")
 
     # -------------------------------------------------------------------------
     # Switcher locked/unlocked
@@ -118,13 +116,11 @@ class GUIChannel(Channel):
         """Called when channel is locked by another client"""
         if not self._lock.isChecked():
             self._lock.toggle()
-            self._lock.setText("Unlock Switcher")
 
     def unlock(self):
         """Called when channel is unlocked by another client"""
         if self._lock.isChecked():
             self._lock.toggle()
-            self._lock.setText("Lock Switcher")
 
     # -------------------------------------------------------------------------
     # Properties
@@ -219,6 +215,62 @@ class GUIChannel(Channel):
         return self._dock
 
 
+class GUIServer(QtGui.QToolBar):
+    def __init__(self, client, server):
+        self.name = server
+        self.client = client
+
+        super().__init__(server)
+        self._create_widgets()
+        self._create_actions()
+        self._add_all()
+        self._connect_callbacks()
+
+    def _create_actions(self):
+        pass
+        #self._pause = QtGui.QAction("Pause")
+
+    def _create_widgets(self):
+        self._echo = QtGui.QLineEdit()
+        self._name = QtGui.QLabel(self.name)
+        self._pause = QtGui.QPushButton("Pause")
+        self._pause.setCheckable(True)
+        self._fast = QtGui.QPushButton("Fast Update")
+        self._fast.setCheckable(True)
+
+    def _add_all(self):
+        for widget in [self._name, self._echo, self._pause, self._fast]:
+            self.addWidget(widget)
+
+    def _connect_callbacks(self):
+        self._echo.editingFinished.connect(self.echo)
+        self._pause.clicked[bool].connect(self.pause)
+        self._fast.clicked[bool].connect(self.fast)
+
+    def echo(self):
+        self.client.request_echo(self.name, self._echo.text())
+
+    def pause(self, pause):
+        print("{} setting {} pause to {}".format(self.client.name, self.name, pause))
+        self.client.request_pause(self.name, pause)
+
+    def fast(self, fast):
+        self.client.request_fast(self.name, fast)
+
+    def set_paused(self, paused):
+        # paused and isChecked() *must* be proper booleans for XOR to work
+        if self._pause.isChecked() ^ paused:
+            print("{}: toggled pause to {}".format(self.name, paused))
+            self._pause.toggle()
+        else:
+            print("{}: not toggled {}".format(self.name, paused))
+
+    def set_fast(self, fast):
+        if self._fast.isChecked() ^ fast:
+            print("{}: toggled fast to {}".format(self.name, fast))
+            self.fast.toggle()
+
+
 class ClientGUI(ClientBackend):
     # List of configurable attributes (maintains order when dumping config)
     # These will all be initialised during __init__ in the call to 
@@ -238,6 +290,8 @@ class ClientGUI(ClientBackend):
         super().__init__(GUIChannel, *args, **kwargs)
 
         self.place_channels()
+        self.create_toolbars()
+        self.place_toolbars()
 
     def show(self):
         self.win.show()
@@ -253,3 +307,13 @@ class ClientGUI(ClientBackend):
                 self.area.addDock(d, position=pos, relativeTo=prev)
                 pos = 'right'
                 prev = d
+
+    def create_toolbars(self):
+        """Create and place server toolbars"""
+        self.toolbars = collections.OrderedDict()
+        for s in self.servers:  
+            self.toolbars[s] = GUIServer(self, s)
+
+    def place_toolbars(self):
+        for t in self.toolbars.values():
+            self.win.addToolBar(t)

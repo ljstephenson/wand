@@ -61,6 +61,7 @@ class Server(common.JSONRPCPeer):
 
         self.tcp_server = None
         self.locked = None
+        self.pause = False
 
         # Switching task is stored to allow cancellation
         self._next = None
@@ -104,6 +105,7 @@ class Server(common.JSONRPCPeer):
         self._next = self.loop.call_soon(self.select)
         # Make sure we're taking items off the queue
         self.loop.create_task(self.consume())
+        self.do_nothing()
         self._log.info("Ready")
 
     def shutdown(self):
@@ -193,32 +195,44 @@ class Server(common.JSONRPCPeer):
         """
         Switches to named channel indefinitely
         """
-        self._log.debug("Locking switcher to {}".format(channel))
-        if self._next:
-            self.loop.call_soon(self._next.cancel)
+        self._log.info("Locking switcher to {}".format(channel))
         self.locked = channel
-        self.loop.call_soon(self.select, channel)
         self.loop.call_soon(self.notify_locked, channel)
+        if not self.pause:
+            if self._next:
+                self.loop.call_soon(self._next.cancel)
+            self.loop.call_soon(self.select, channel)
+
 
     def rpc_unlock(self):
         """Resume normal switching"""
-        self._log.debug("Unlocking switcher")
+        self._log.info("Unlocking switcher")
         self.locked = False
-        self._next = self.loop.call_soon(self.select)
         self.loop.call_soon(self.notify_unlocked)
+        if not self.pause:
+            self._next = self.loop.call_soon(self.select)
 
     def rpc_pause(self, pause=True):
-        if pause:
-            if self._next:
-                self.loop.call_soon(self._next.cancel)
-            self.cancel_tasks()
-        else:
-            # Resume
-            if self.locked:
-                self.loop.call_soon(self.select, self.locked)
+        if self._next:
+            self.loop.call_soon(self._next.cancel)
+
+        # Do nothing unless new value is different from old
+        if pause ^ self.pause:
+            if pause:
+                self._log.info("Pausing")
+                self.cancel_tasks()
             else:
-                self.loop.call_soon(self.select)
-        self.pause = pause
+                # Resume
+                self._log.info("Unpausing")
+                if self.locked:
+                    self.loop.call_soon(self.select, self.locked)
+                else:
+                    self.loop.call_soon(self.select)
+            self.pause = pause
+            self.loop.call_soon(self.notify_paused)
+
+    def rpc_fast(self, fast):
+        print("fast = {}".format(fast))
 
     def rpc_get_name(self):
         return self.name
@@ -275,6 +289,7 @@ class Server(common.JSONRPCPeer):
         self.from_dict(cfg)
 
     def rpc_echo(self, s):
+        self._log.debug("ECHO '{}'".format(s))
         return s
 
     # -------------------------------------------------------------------------
@@ -287,6 +302,16 @@ class Server(common.JSONRPCPeer):
     def notify_unlocked(self):
         method = "unlocked"
         params = {"server":self.name}
+        self._notify_all(method, params)
+
+    def notify_paused(self):
+        method = "paused"
+        params = {"server":self.name, "pause":self.pause}
+        self._notify_all(method, params)
+
+    def notify_update_speed(self):
+        method = "update_speed"
+        params = {"server":self.name, "speed":self.update_speed}
         self._notify_all(method, params)
 
     def notify_refresh_channel(self, channel):

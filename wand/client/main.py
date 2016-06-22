@@ -11,7 +11,7 @@ import wand.common as common
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("filename", help="JSON configuration file")
-    common.add_verbosty_args(parser)
+    common.add_verbosity_args(parser)
     return parser.parse_args()
 
 def main():

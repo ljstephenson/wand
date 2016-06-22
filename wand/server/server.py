@@ -45,6 +45,7 @@ class Server(common.JSONRPCPeer):
         self.simulate = simulate
         self.get_switcher()
         self.configure_osa()
+        self.configure_wavemeter()
 
         # Initialise influxdb client
         if not self.simulate:
@@ -87,6 +88,13 @@ class Server(common.JSONRPCPeer):
         """Set the input and trigger channels to be used on the osa"""
         if not self.simulate:
             osa.channel_setup(self.osa)
+            self._log.debug("Set osa configuration")
+
+    def configure_wavemeter(self):
+        """Initialise wavemeter"""
+        if not self.simulate:
+            wavemeter.init()
+            self._log.debug("Wavemeter ready")
 
     def startup(self):
         # Start the TCP server

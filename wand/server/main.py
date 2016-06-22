@@ -4,7 +4,6 @@ import asyncio
 import logging
 
 import wand.server.server as server
-import wand.server.wavemeter as wavemeter
 import wand.common as common
 
 def parse_args():
@@ -19,11 +18,6 @@ def main():
     level = common.get_verbosity_level(args)
     logging.basicConfig(format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",level=level)
     log = logging.getLogger(__name__)
-
-    if not args.simulate:
-        log.info("Initialising wavemeter... ")
-        wavemeter.init()
-        log.info("Done initialising wavemeter")
 
     loop = asyncio.get_event_loop()
 

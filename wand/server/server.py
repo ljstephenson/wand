@@ -143,6 +143,11 @@ class Server(common.JSONRPCPeer):
             conn = self.connections.pop(addr)
             conn.close()
             del conn
+            # If all clients have been removed, assume we can return to
+            # switching mode
+            if not self.connections:
+                self.locked = False
+                self.loop.call_soon(self.select)
         future.add_done_callback(client_disconnected)
 
     def close_connections(self):

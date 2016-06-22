@@ -7,9 +7,11 @@ import collections
 
 from wand.client.client import ClientBackend
 from wand.client.channel import Channel
+from wand.common import with_log
 
 import time
 
+@with_log
 class GUIChannel(Channel):
     def __init__(self, *args, **kwargs):
 
@@ -215,6 +217,7 @@ class GUIChannel(Channel):
         return self._dock
 
 
+@with_log
 class GUIServer(QtGui.QToolBar):
     def __init__(self, client, server):
         self.name = server
@@ -234,38 +237,42 @@ class GUIServer(QtGui.QToolBar):
         self._fast.setCheckable(True)
 
     def _add_all(self):
-        for widget in [self._name, self._echo, self._pause, self._fast]:
+        for widget in [self._name, self._pause, self._fast]:
             self.addWidget(widget)
 
+    # -------------------------------------------------------------------------
+    # Widget callbacks
+    #
     def _connect_callbacks(self):
-        self._echo.editingFinished.connect(self.echo)
-        self._pause.clicked[bool].connect(self.pause)
-        self._fast.clicked[bool].connect(self.fast)
+        self._echo.editingFinished.connect(self.cb_echo)
+        self._pause.clicked[bool].connect(self.cb_pause)
+        self._fast.clicked[bool].connect(self.cb_fast)
 
-    def echo(self):
+    def cb_echo(self):
         self.client.request_echo(self.name, self._echo.text())
 
-    def pause(self, pause):
-        print("{} setting {} pause to {}".format(self.client.name, self.name, pause))
+    def cb_pause(self, pause):
         self.client.request_pause(self.name, pause)
 
-    def fast(self, fast):
+    def cb_fast(self, fast):
         self.client.request_fast(self.name, fast)
 
+    # -------------------------------------------------------------------------
+    # Updates
+    #
     def set_paused(self, paused):
         # paused and isChecked() *must* be proper booleans for XOR to work
         if self._pause.isChecked() ^ paused:
-            print("{}: toggled pause to {}".format(self.name, paused))
+            self._log.debug("{}: toggled pause to {}".format(self.name, paused))
             self._pause.toggle()
-        else:
-            print("{}: not toggled {}".format(self.name, paused))
 
     def set_fast(self, fast):
         if self._fast.isChecked() ^ fast:
-            print("{}: toggled fast to {}".format(self.name, fast))
-            self.fast.toggle()
+            self._log.debug("{}: toggled fast to {}".format(self.name, fast))
+            self._fast.toggle()
 
 
+@with_log
 class ClientGUI(ClientBackend):
     # List of configurable attributes (maintains order when dumping config)
     # These will all be initialised during __init__ in the call to 

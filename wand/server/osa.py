@@ -9,6 +9,7 @@ from wand.common import with_log
 
 __all__ = [
     'OSATask',
+    'set_frequency',
     'channel_setup',
 ]
 
@@ -17,6 +18,9 @@ NO_OPTIONS = 0
 
 # Approx collection frequency
 _FREQUENCY = 10
+def set_frequency(frequency):
+    global _FREQUENCY
+    _FREQUENCY = frequency
 
 # Parameters for data acquisition
 SAMPLES = 1600
@@ -24,6 +28,7 @@ RATE = 1.25e5
 TIMEOUT = 0.1
 MIN_V = -1.0
 MAX_V = 1.0
+
 
 def channel_setup(config):
     """Set up the channels to be used in the DAQ card"""

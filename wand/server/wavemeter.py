@@ -6,14 +6,19 @@ import asyncio
 import enum
 from wand.common import with_log
 
-__all__ = ['WavemeterError',
-           'WavemeterTask',
-           'init',
-           'switch',
-           ]
+__all__ = [
+    'WavemeterError',
+    'WavemeterTask',
+    'init',
+    'switch',
+    'set_frequency'
+]
 
 # Approx collection frequency
 _FREQUENCY = 10
+def set_frequency(frequency):
+    global _FREQUENCY
+    _FREQUENCY = frequency
 
 # -----------------------------------------------------------------------------
 # Constants

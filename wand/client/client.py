@@ -28,7 +28,7 @@ class ClientBackend(common.JSONRPCPeer):
 
         self.running = False
 
-        self.conns_by_s = {}
+        self.conns_by_s = weakref.WeakValueDictionary()
         self.conns_by_c = weakref.WeakValueDictionary()
         self.channels = collections.OrderedDict()
 
@@ -75,7 +75,9 @@ class ClientBackend(common.JSONRPCPeer):
             self.loop.create_task(self.server_reconnect(server, attempt))
         else:
             conn = common.JSONRPCConnection(self.handle_rpc, reader, writer)
+            addr = writer.get_extra_info('peername')
 
+            self.connections[addr] = conn
             self.conns_by_s[server] = conn
 
             channels = s.get('channels', [])
@@ -91,7 +93,7 @@ class ClientBackend(common.JSONRPCPeer):
 
     def server_disconnected(self, server):
         """Called when server disconnects"""
-        self._log.info("Server {} disconnected".format(server))
+        self._log.info("{} disconnected".format(server))
         conn = self.conns_by_s.pop(server, None)
         if conn:
             conn.close()
@@ -113,12 +115,6 @@ class ClientBackend(common.JSONRPCPeer):
     def abort_connection(self, server, reason):
         self.loop.stop()
         self._log.error("'{}' refused connection: {}".format(server, reason))
-
-    def close_connections(self):
-        while self.conns_by_s:
-            (_, conn) = self.conns_by_s.popitem()
-            conn.close()
-            del conn
 
     # -------------------------------------------------------------------------
     # RPC methods implemented by this class
@@ -173,11 +169,23 @@ class ClientBackend(common.JSONRPCPeer):
         toolbar = self.toolbars[server]
         toolbar.set_fast(fast)
 
+    def rpc_server_state(self, server, pause, lock, fast):
+        if lock:
+            self.rpc_locked(server, lock)
+        else:
+            self.rpc_unlocked(server)
+        self.rpc_paused(server, pause)
+        self.rpc_fast(server, fast)
+
     def rpc_connection_rejected(self, server, reason):
         """Called by server to indicate that the connection was rejected"""
         # Deliberately not called connection_refused - in this case the
         # connection was made but the server rejected it for another reason
         self.loop.call_soon(self.abort_connection, server, reason)
+
+    def rpc_ping(self, server):
+        # self._log.debug("Ping from {}".format(server))
+        pass
 
     # -------------------------------------------------------------------------
     # Requests for RPC
@@ -220,23 +228,28 @@ class ClientBackend(common.JSONRPCPeer):
         def update_channels(result):
             for c, cfg in result.items():
                 self.channels[c].from_json(cfg)
-        s = self.servers.get(server, {})
+        s = self.servers.get(server)
         method = "register_client"
         params = {"client":self.name, "channels":s.get('channels', [])}
         self._server_request(server, method, params, cb=update_channels)
 
     def request_echo(self, server, string):
-        s = self.servers.get(server, {})
+        s = self.servers.get(server)
         method = "echo"
         params = {"s":string}
         self._server_request(server, method, params)
 
     def request_pause(self, server, pause):
-        s = self.servers.get(server, {})
+        s = self.servers.get(server)
         method = "pause"
         params = {"pause":pause}
         self._server_request(server, method, params)
 
+    def request_fast(self, server, fast):
+        s = self.servers.get(server)
+        method = "fast"
+        params = {"fast":fast}
+        self._server_request(server, method, params)
 
     # -------------------------------------------------------------------------
     # Helpers for channel/server requests

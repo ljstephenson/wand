@@ -38,7 +38,7 @@ class Server(common.JSONRPCPeer):
                 ('channels', Channel),
             ])
     switch_interval = 10
-    data_interval = {'fast':10, 'slow':1}
+    data_frequency = {'fast':10, 'slow':1}
     log_interval = {'wavemeter':5, 'osa':600}
 
     def __init__(self, simulate=False, **kwargs):
@@ -56,13 +56,14 @@ class Server(common.JSONRPCPeer):
         self.ch_gen = itertools.cycle(self.channels)
 
         self.clients = weakref.WeakValueDictionary()
-        self.connections = {}
 
         self.data_q = asyncio.Queue()
 
         self.tcp_server = None
         self.locked = None
         self.pause = False
+        self.fast = False
+        self.setup_data_rate()
 
         # Switching task is stored to allow cancellation
         self._next = None
@@ -116,6 +117,13 @@ class Server(common.JSONRPCPeer):
         self.loop.run_until_complete(self.tcp_server.wait_closed())
         self._log.info("Shutdown finished")
 
+    def do_nothing(self):
+        async def pinger():
+            await asyncio.sleep(1)
+            self.loop.call_soon(self.ping)
+            self.loop.create_task(pinger())
+        self.loop.create_task(pinger())
+
     # -------------------------------------------------------------------------
     # Network operations
     #
@@ -133,6 +141,7 @@ class Server(common.JSONRPCPeer):
             if result not in self.clients:
                 self._log.info("Connection from {} registered: {}".format(addr, result))
                 self.clients[result] = conn
+                self.notify_server_state(result)
             else:
                 self._log.info("Connection from {} rejected: name '{}' is already registered".format(addr, result))
                 self.notify(conn, 'connection_rejected',
@@ -151,13 +160,10 @@ class Server(common.JSONRPCPeer):
             if not self.connections:
                 self._log.info("No more clients connected: force switching mode")
                 self.locked = False
+                self.pause = False
+                self.fast = False
                 self.loop.call_soon(self.select)
         future.add_done_callback(client_disconnected)
-
-    def close_connections(self):
-        while self.connections:
-            (_, conn) = self.connections.popitem()
-            conn.close()
 
     # -------------------------------------------------------------------------
     # Switching
@@ -182,6 +188,17 @@ class Server(common.JSONRPCPeer):
         # Schedule the next switch
         if not self.locked:
             self._next = self.loop.call_later(self.switch_interval, self.select)
+
+    def setup_data_rate(self):
+        speed = 'fast' if self.fast else 'slow'
+
+        self._log.info("Setting to {} mode".format(speed))
+        f = self.data_frequency[speed]
+        if self.simulate:
+            fake.set_frequency(f)
+        else:
+            osa.set_frequency(f)
+            wavemeter.set_frequency(f)
 
     # -------------------------------------------------------------------------
     # RPC methods
@@ -233,7 +250,11 @@ class Server(common.JSONRPCPeer):
             self.loop.call_soon(self.notify_paused)
 
     def rpc_fast(self, fast):
-        pass
+        # Do nothing unless new value is different from old
+        if fast ^ self.fast:
+            self.fast = fast
+            self.setup_data_rate()
+            self.loop.call_soon(self.notify_fast)
 
     def rpc_get_name(self):
         return self.name
@@ -295,6 +316,7 @@ class Server(common.JSONRPCPeer):
 
     # -------------------------------------------------------------------------
     # Notifications to clients
+    #
     def notify_locked(self, channel):
         method = "locked"
         params = {"server":self.name, "channel":channel}
@@ -310,6 +332,11 @@ class Server(common.JSONRPCPeer):
         params = {"server":self.name, "pause":self.pause}
         self._notify_all(method, params)
 
+    def notify_fast(self):
+        method = "fast"
+        params = {"server":self.name, "fast":self.fast}
+        self._notify_all(method, params)
+
     def notify_update_speed(self):
         method = "update_speed"
         params = {"server":self.name, "speed":self.update_speed}
@@ -321,11 +348,31 @@ class Server(common.JSONRPCPeer):
         params = {"channel":channel, "cfg":c.to_json()}
         self._notify_channel(channel, method, params)
 
+    def notify_server_state(self, client=None):
+        method = "server_state"
+        params = {
+            'server':self.name,
+            'pause':self.pause,
+            'lock':self.locked,
+            'fast':self.fast
+        }
+        if client is not None:
+            self._notify_client(client, method, params)
+        else:
+            self._notify_all(method, params)
+
+    def ping(self):
+        method = "ping"
+        params = {"server":self.name}
+        self._notify_all(method, params)
+
     # -------------------------------------------------------------------------
     # Helper functions for channel/client requests
     #
     def _notify_client(self, client, *args, **kwargs):
-        pass
+        conn = self.clients.get(client)
+        if conn is not None:
+            self.loop.create_task(conn.notify(*args, **kwargs))
 
     def _notify_channel(self, channel, *args, **kwargs):
         c = self.channels.get(channel)

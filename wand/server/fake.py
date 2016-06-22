@@ -6,9 +6,14 @@ from wand.common import with_log
 __all__ = [
     'FakeOSATask',
     'FakeWavemeterTask',
+    'set_frequency',
 ]
 
 _FREQUENCY = 10
+def set_frequency(frequency):
+    global _FREQUENCY
+    _FREQUENCY = frequency
+
 
 @with_log
 class FakeTask(object):

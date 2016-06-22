@@ -198,6 +198,7 @@ class JSONRPCPeer(JSONConfigurable):
         super().__init__(*args, **kwargs)
 
         self.loop = asyncio.get_event_loop()
+        self.connections = {}
 
         self.result_q = asyncio.Queue()
         self.dsp = jsonrpc.Dispatcher()
@@ -262,6 +263,11 @@ class JSONRPCPeer(JSONConfigurable):
             self.loop.create_task(sleep())
         self.loop.create_task(sleep())
 
+    def close_connections(self):
+        while self.connections:
+            (_, conn) = self.connections.popitem()
+            conn.close()
+
     # -------------------------------------------------------------------------
     # Internal functions
     #
@@ -315,7 +321,8 @@ class JSONRPCPeer(JSONConfigurable):
 
     def _result_handler(self, result):
         """Default to logging successes"""
-        self._log.debug("RPC returned:{}".format(result))
+        #self._log.debug("RPC returned:{}".format(result))
+        pass
 
     @property
     def next_id(self):

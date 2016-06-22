@@ -222,13 +222,8 @@ class GUIServer(QtGui.QToolBar):
 
         super().__init__(server)
         self._create_widgets()
-        self._create_actions()
         self._add_all()
         self._connect_callbacks()
-
-    def _create_actions(self):
-        pass
-        #self._pause = QtGui.QAction("Pause")
 
     def _create_widgets(self):
         self._echo = QtGui.QLineEdit()

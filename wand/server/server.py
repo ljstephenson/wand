@@ -37,7 +37,8 @@ class Server(common.JSONRPCPeer):
                 ('mode', None),
                 ('channels', Channel),
             ])
-    interval = 10
+    switch_interval = 10
+    data_interval = {'fast':10, 'slow':1}
     log_interval = {'wavemeter':5, 'osa':600}
 
     def __init__(self, simulate=False, **kwargs):
@@ -180,7 +181,7 @@ class Server(common.JSONRPCPeer):
 
         # Schedule the next switch
         if not self.locked:
-            self._next = self.loop.call_later(self.interval, self.select)
+            self._next = self.loop.call_later(self.switch_interval, self.select)
 
     # -------------------------------------------------------------------------
     # RPC methods
@@ -232,7 +233,7 @@ class Server(common.JSONRPCPeer):
             self.loop.call_soon(self.notify_paused)
 
     def rpc_fast(self, fast):
-        print("fast = {}".format(fast))
+        pass
 
     def rpc_get_name(self):
         return self.name

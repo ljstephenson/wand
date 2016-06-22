@@ -7,7 +7,9 @@ import asyncio
 import json
 import jsonrpc
 import logging
+import logging.handlers
 import time
+import os
 
 __all__ = [
     'with_log',
@@ -42,6 +44,20 @@ def get_verbosity_level(args):
         new_level = (logging.WARNING + 10*args.quiet)
         level = new_level if new_level <= logging.CRITICAL else logging.CRITICAL
     return level
+
+def get_log_name(name):
+    """Platform independent way of getting appropriate log name"""
+    if os.name == "nt":
+        # Windows machine, shared area at Z:\
+        shared = 'Z:\\'
+    else:
+        shared = os.path.expanduser('~/steaneShared')
+
+    dirname = 'wavemeters'
+    subdir = 'logs'
+    filename = name + '.log'
+    prefix = os.path.join(shared, dirname, subdir)
+    return os.path.join(prefix, filename)
 
 
 @with_log
@@ -196,6 +212,7 @@ class JSONRPCPeer(JSONConfigurable):
     def __init__(self, *args, **kwargs):
         # JSON configuration initialisation
         super().__init__(*args, **kwargs)
+        self.set_up_logger()
 
         self.loop = asyncio.get_event_loop()
         self.connections = {}
@@ -206,6 +223,18 @@ class JSONRPCPeer(JSONConfigurable):
 
         self.next_id = 0
         self.results = {}
+
+    def set_up_logger(self):
+        """Set up the top level logger"""
+        log = logging.getLogger('wand')
+        log_name = get_log_name(self.name)
+        fmt = logging.Formatter("{asctime}:{levelname}:{name}:{message}", style='{')
+        # Use 10kib log files, with 5 backups
+        fh = logging.handlers.RotatingFileHandler(log_name, 10*1024, 5)
+        ch = logging.StreamHandler()
+        for handler in [fh, ch]:
+            handler.setFormatter(fmt)
+            log.addHandler(handler)
 
     def add_rpc_methods(self):
         """Add the rpc methods to the dispatcher (call only during init)"""

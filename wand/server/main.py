@@ -16,8 +16,8 @@ def parse_args():
 def main():
     args = parse_args()
     level = common.get_verbosity_level(args)
-    logging.basicConfig(format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",level=level)
-    log = logging.getLogger(__name__)
+    log = logging.getLogger(__package__)
+    logging.getLogger('wand').setLevel(level)
 
     loop = asyncio.get_event_loop()
 

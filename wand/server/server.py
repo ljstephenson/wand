@@ -108,6 +108,8 @@ class Server(common.JSONRPCPeer):
         # Make sure we're taking items off the queue
         self.loop.create_task(self.consume())
         self.do_nothing()
+        if self.simulate:
+            self._log.info("Running as simulation, will not access hardware")
         self._log.info("Ready")
 
     def shutdown(self):
@@ -158,10 +160,11 @@ class Server(common.JSONRPCPeer):
             # If all clients have been removed, assume we can return to
             # switching mode
             if not self.connections:
-                self._log.info("No more clients connected: force switching mode")
+                self._log.info("No more clients connected, force switching mode")
                 self.locked = False
                 self.pause = False
                 self.fast = False
+                self.setup_data_rate()
                 self.loop.call_soon(self.select)
         future.add_done_callback(client_disconnected)
 

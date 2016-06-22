@@ -25,9 +25,6 @@ def main():
     s.startup()
 
     try:
-        log.info("Wavemeter server ready")
-        if args.simulate:
-            log.info("Running as simulation, will not access hardware")
         loop.run_forever()
     except KeyboardInterrupt as e:  
         log.info("Quitting due to user keyboard interrupt")

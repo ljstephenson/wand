@@ -146,6 +146,7 @@ class Server(common.JSONRPCPeer):
             # If all clients have been removed, assume we can return to
             # switching mode
             if not self.connections:
+                self._log.info("No more clients connected: force switching mode")
                 self.locked = False
                 self.loop.call_soon(self.select)
         future.add_done_callback(client_disconnected)

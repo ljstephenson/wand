@@ -259,7 +259,6 @@ class JSONRPCPeer(JSONConfigurable):
         """Keeps the loop occupied and responsive to CTRL+C"""
         async def sleep():
             await asyncio.sleep(1)
-            print("s", end='', flush=True)
             self.loop.create_task(sleep())
         self.loop.create_task(sleep())
 

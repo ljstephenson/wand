@@ -230,7 +230,7 @@ class JSONRPCPeer(JSONConfigurable):
         log_name = get_log_name(self.name)
         fmt = logging.Formatter("{asctime}:{levelname}:{name}:{message}", style='{')
         # Use 10kib log files, with 5 backups
-        fh = logging.handlers.RotatingFileHandler(log_name, 10*1024, 5)
+        fh = logging.handlers.RotatingFileHandler(log_name, maxBytes=100*1024, backupCount=5)
         ch = logging.StreamHandler()
         for handler in [fh, ch]:
             handler.setFormatter(fmt)

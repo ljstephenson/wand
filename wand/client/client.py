@@ -25,6 +25,7 @@ class ClientBackend(common.JSONRPCPeer):
 
     def __init__(self, cls, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.check_config()
 
         self.running = False
 
@@ -273,3 +274,19 @@ class ClientBackend(common.JSONRPCPeer):
         """Fetch the channel object using its short name"""
         name = self.short_names[short_name]
         return self.channels[name]
+
+    # -------------------------------------------------------------------------
+    # Config sanitiser
+    #
+    def check_config(self):
+        """Check the current config for errors and flag them"""
+        try:
+            flat_layout = [shortname for row in self.layout for shortname in row]
+            for shortname in flat_layout:
+                assert shortname in self.short_names, "{}: No long name found".format(shortname)
+                name = self.short_names[shortname]
+                all_names = [ch for sv in self.servers.values() for ch in sv['channels']]
+                assert name in all_names, "{} not found in any server list".format(name)
+        except AssertionError as e:
+            self._log.error("Error in config file: {}".format(e))
+            raise

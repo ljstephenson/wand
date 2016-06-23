@@ -43,6 +43,7 @@ class Server(common.JSONRPCPeer):
 
     def __init__(self, simulate=False, **kwargs):
         super().__init__(**kwargs)
+        self.check_config()
         self.simulate = simulate
         self.get_switcher()
         self.configure_osa()
@@ -502,3 +503,18 @@ class Server(common.JSONRPCPeer):
                 }
             }
         ]
+
+    # -------------------------------------------------------------------------
+    # Config sanitiser
+    #
+    def check_config(self):
+        """Check the current config for errors and flag them"""
+        try:
+            numbers = []
+            for name, channel in self.channels.items():
+                assert name == channel.name, "{}: Name doesn't match key".format(name)
+                assert channel.number not in numbers, "{}: channel number already in use".format(name)
+                numbers.append(channel.number)
+        except AssertionError as e:
+            self._log.error("Error in config file: {}".format(e))
+            raise

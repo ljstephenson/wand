@@ -183,7 +183,7 @@ class Server(common.JSONRPCPeer):
             channel = next(self.ch_gen)
         c = self.channels[channel]
 
-        self._log.info("Selecting channel: {}".format(channel))
+        self._log.debug("Selecting channel: {}".format(channel))
         self.switch(c.number)
         self.new_tasks(c)
         self.start_tasks()

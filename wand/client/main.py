@@ -17,9 +17,8 @@ def parse_args():
 def main():
     args = parse_args()
     level = common.get_verbosity_level(args)
-    logging.basicConfig(format="%(asctime)s:%(levelname)s:%(name)s:%(message)s",level=level)
-    log = logging.getLogger(__name__)
-    logging.getLogger("quamash").setLevel(logging.WARNING)
+    log = logging.getLogger(__package__)
+    logging.getLogger('wand').setLevel(level)
 
     app = QtGui.QApplication([])
     loop = QEventLoop(app)

@@ -380,8 +380,11 @@ class Server(common.JSONRPCPeer):
     def _notify_channel(self, channel, *args, **kwargs):
         c = self.channels.get(channel)
         #print("\nNotify channel: {} args: {} kwargs: {}".format(channel, args, kwargs))
-        for conn in c.clients.values(): 
-            self.loop.create_task(conn.notify(*args, **kwargs))
+        if c is None:
+            self._log.error("Channel '{}' not found".format(channel))
+        else:
+            for conn in c.clients.values():
+                self.loop.create_task(conn.notify(*args, **kwargs))
 
     def _notify_all(self, *args, **kwargs):
         #print("\nNotify all: args: {} kwargs: {}".format(args, kwargs))

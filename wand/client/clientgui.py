@@ -233,11 +233,13 @@ class GUIServer(QtGui.QToolBar):
         self._name = QtGui.QLabel(self.name)
         self._pause = QtGui.QPushButton("Pause")
         self._pause.setCheckable(True)
-        self._fast = QtGui.QPushButton("Fast Update")
+        self._fast = QtGui.QPushButton("Fast Mode")
         self._fast.setCheckable(True)
 
     def _add_all(self):
-        for widget in [self._name, self._pause, self._fast]:
+        self.addWidget(self._name)
+        self.addSeparator()
+        for widget in [self._pause, self._fast]:
             self.addWidget(widget)
 
     # -------------------------------------------------------------------------

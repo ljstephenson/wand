@@ -84,7 +84,7 @@ class GUIChannel(Channel):
     # Callbacks
     #
     def _connect_callbacks(self):
-        self._lock.clicked.connect(self.toggle_lock)
+        self._lock.clicked[bool].connect(self.toggle_lock)
         self._save.clicked.connect(self.save)
         self._reference.valueChanged.connect(self.ref)
         self._exposure.valueChanged.connect(self.exp)
@@ -105,8 +105,8 @@ class GUIChannel(Channel):
     def save(self):
         self.client.request_save_channel_settings(self.name)
 
-    def toggle_lock(self):
-        if self._lock.isChecked():
+    def toggle_lock(self, locked):
+        if locked:
             self.client.request_lock(self.name)
         else:
             self.client.request_unlock(self.name)
@@ -114,14 +114,9 @@ class GUIChannel(Channel):
     # -------------------------------------------------------------------------
     # Switcher locked/unlocked
     #
-    def lock(self):
-        """Called when channel is locked by another client"""
-        if not self._lock.isChecked():
-            self._lock.toggle()
-
-    def unlock(self):
-        """Called when channel is unlocked by another client"""
-        if self._lock.isChecked():
+    def set_locked(self, locked):
+        """Called when channel is locked/unlocked by another client"""
+        if locked ^ self._lock.isChecked():
             self._lock.toggle()
 
     # -------------------------------------------------------------------------

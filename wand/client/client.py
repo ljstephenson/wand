@@ -148,18 +148,18 @@ class ClientBackend(common.JSONRPCPeer):
         locked = self.channels.get(channel)
         if locked is not None:
             # Locked channel may not be shown on this client at all
-            locked.lock()
+            locked.set_locked(True)
 
         channels = self.servers.get(server).get('channels')
         unlocked = [self.channels.get(c) for c in channels if c != channel]
         for c in unlocked:
-            c.unlock()
+            c.set_locked(False)
 
     def rpc_unlocked(self, server):
         channels = self.servers.get(server).get('channels')
         unlocked = [self.channels.get(c) for c in channels]
         for c in unlocked:
-            c.unlock()
+            c.set_locked(False)
 
     def rpc_paused(self, server, pause):
         toolbar = self.toolbars[server]

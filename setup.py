@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 
 scripts = [
     "wand_server=wand.server.main:main",
@@ -6,12 +6,8 @@ scripts = [
 ]
 
 setup(name='wand',
-    version='0.1.0',
-    packages=['wand',
-              'wand.common',
-              'wand.client',
-              'wand.server',
-             ],
+    version='0.1.1',
+    packages=find_packages(),
     entry_points={
         "console_scripts": scripts,
     },
@@ -20,5 +16,6 @@ setup(name='wand',
         'json-rpc>=1.10',
         'PyDAQmx>=1',
         'quamash',
-    ]
+    ],
+    package_data={'':['*.svg']}
 )

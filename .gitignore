@@ -2,3 +2,4 @@ __pychache__/
 __pychache__/**
 *.pyc
 *.egg-info/
+Thumbs.db

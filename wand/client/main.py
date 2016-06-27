@@ -4,6 +4,7 @@ from . import QtGui
 from quamash import QEventLoop
 import asyncio
 import logging
+import pkg_resources
 
 import wand.client.clientgui as clientgui
 import wand.common as common
@@ -23,6 +24,7 @@ def main():
     app = QtGui.QApplication([])
     loop = QEventLoop(app)
     asyncio.set_event_loop(loop)
+    set_icon(app)
 
     c = clientgui.ClientGUI(fname=args.filename)
     c.startup()
@@ -45,6 +47,14 @@ def main():
         loop.close()
 
     sys.exit()
+
+
+def set_icon(app):
+    fname = pkg_resources.resource_filename("wand", "resources/wand.svg")
+    icon = QtGui.QIcon()
+    icon.addFile(fname)
+    app.setWindowIcon(icon)
+
 
 if __name__ == "__main__":
     main()

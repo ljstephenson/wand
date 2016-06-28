@@ -289,22 +289,16 @@ class Server(common.JSONRPCPeer):
     def rpc_save_channel_settings(self, channel):
         """Save the currently stored channel config to file"""
         self._log.debug("Saving {} settings".format(channel))
+
         # Get channel settings
-        cfg = self.channels[channel].to_dict()
-        update = {'channels':{channel:cfg}}
+        upd = self.channels[channel].to_dict()
 
-        # Store running config so that not all channels are saved
-        running = self.to_dict()
+        # Load the old file config (from_file defaults to the last used)
+        cfg = self.cfg_from_file()
 
-        # Load file into running (from_file defaults to the last used)
-        self.from_file()
-
-        # Update with channel to save and then save file
-        self.from_dict(update)
-        self.to_file()
-
-        # Restore running config
-        self.from_dict(running)
+        # Update with channel to save and then save it to file
+        cfg['channels'][channel].update(upd)
+        self.cfg_to_file(cfg)
 
     def rpc_save_all(self):
         self.to_file()

@@ -112,17 +112,22 @@ class JSONConfigurable(object):
             else:
                 setattr(self, attr, None)
 
-    def from_file(self, fname=None):
-        """Set configuration from a file"""
+    def cfg_from_file(self, fname=None):
+        """Return the configuration dict from a file"""
         if fname is not None:
             self.filename = fname            
 
         with open(self.filename, 'r') as f:
             cfg = json.load(f, object_pairs_hook=collections.OrderedDict)
+        return cfg
+
+    def from_file(self, fname=None):
+        """Set configuration from a file"""
+        cfg = self.cfg_from_file(fname)
         self.from_dict(cfg)
 
-    def to_file(self, fname=None, **kwargs):
-        """Print configuration to a file"""
+    def cfg_to_file(self, cfg, fname=None, **kwargs):
+        """Save a configuration dict to a file"""
         # Default to pretty printing with indent
         if kwargs == {}:
             kwargs = {'indent':4, 'separators':(',', ':')}
@@ -131,7 +136,12 @@ class JSONConfigurable(object):
             self.filename = fname
 
         with open(self.filename, 'w') as f:
-            json.dump(self.to_dict(), f, **kwargs)
+            json.dump(cfg, f, **kwargs)
+
+    def to_file(self, fname=None, **kwargs):
+        """Print configuration to a file"""
+        cfg = self.to_dict()
+        self.cfg_to_file(cfg, fname, **kwargs)
 
     def from_json(self, cfg_str):
         """Set attributes with JSON string"""

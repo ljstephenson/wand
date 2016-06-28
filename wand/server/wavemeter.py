@@ -110,9 +110,7 @@ class WavemeterTask(object):
         self._callback = None
         self._mode = "poll"
 
-        lib.SetExposureNum(self.channel.number,
-                           self.channel.array,
-                           self.channel.exposure)
+        self.setExposure()
 
     def StartTask(self):
         """Start collections"""
@@ -144,7 +142,8 @@ class WavemeterTask(object):
 
     def setExposure(self):
         """Call after updating channel exposure"""
-        self._log.debug("Changing exposure time")
+        self._log.debug("Setting wavemeter exposure")
+        self.exposure = self.channel.exposure
         lib.SetExposureNum(self.channel.number,
                            self.channel.array,
                            self.channel.exposure)
@@ -154,6 +153,9 @@ class WavemeterTask(object):
     #
     async def measure(self):
         """Poll the wavemeter and reschedule the next poll"""
+        # Check exposure hasn't changed
+        if self.exposure != self.channel.exposure:
+            self.setExposure()
         lib.TriggerMeasurement(cCtrlMeasurementTriggerSuccess)
         await asyncio.sleep(1.0/_FREQUENCY)
 

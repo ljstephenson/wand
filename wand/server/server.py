@@ -281,9 +281,6 @@ class Server(common.JSONRPCPeer):
         c = self.channels.get(channel)
         if c is not None:
             c.from_dict(cfg)
-            t = self.tasks.get('wavemeter')
-            if t is not None:
-                t.setExposure()
             self.loop.call_soon(self.notify_refresh_channel, channel)
 
     def rpc_echo_channel_config(self, channel):

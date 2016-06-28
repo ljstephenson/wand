@@ -93,6 +93,7 @@ class OSATask(FakeTask):
 class WavemeterTask(FakeTask):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.exposure = self.channel.exposure
 
         # Set up an approximate detuning Thz, consistent per channel
         random.seed(self.channel.number)
@@ -100,6 +101,9 @@ class WavemeterTask(FakeTask):
         random.seed()
 
     def _get_data(self):
+        if self.exposure != self.channel.exposure:
+            self.setExposure()
+
         # set scale of wobble to be +/-1 MHz i.e. 1e-6THz
         wobble = (random.random()-0.5)*2e-6
         f = self.channel.reference + self._detuning + wobble
@@ -109,4 +113,5 @@ class WavemeterTask(FakeTask):
         return d
 
     def setExposure(self):
+        self.exposure = self.channel.exposure
         self._log.debug("Changing exposure time")

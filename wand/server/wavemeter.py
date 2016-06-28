@@ -142,6 +142,13 @@ class WavemeterTask(object):
         """No-op so that wavemeter and OSA have identical APIs"""
         pass
 
+    def setExposure(self):
+        """Call after updating channel exposure"""
+        self._log.debug("Changing exposure time")
+        lib.SetExposureNum(self.channel.number,
+                           self.channel.array,
+                           self.channel.exposure)
+
     # -------------------------------------------------------------------------
     # Polling operation functions
     #

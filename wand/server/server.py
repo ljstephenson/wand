@@ -70,7 +70,7 @@ class Server(common.JSONRPCPeer):
         self._next = None
 
         # Measurement tasks
-        self.tasks = []
+        self.tasks = {}
 
         # Store last logging time of wavelength and osa trace
         self.last_log = collections.OrderedDict()
@@ -281,6 +281,9 @@ class Server(common.JSONRPCPeer):
         c = self.channels.get(channel)
         if c is not None:
             c.from_dict(cfg)
+            t = self.tasks.get('wavemeter')
+            if t is not None:
+                t.setExposure()
             self.loop.call_soon(self.notify_refresh_channel, channel)
 
     def rpc_echo_channel_config(self, channel):
@@ -421,26 +424,28 @@ class Server(common.JSONRPCPeer):
     # OSA and Wavemeter task operations
     #
     def new_tasks(self, channel):
+        tasks = {}
         if self.simulate:
-            tasks = [fake.OSATask, fake.WavemeterTask]
+            if 'osa' in self.mode:
+                tasks['osa'] = fake.OSATask
+            if 'wavemeter' in self.mode:
+                tasks['wavemeter'] = fake.WavemeterTask
         else:
-            if self.mode == 'osa_only':
-                tasks = [osa.OSATask]
-            elif self.mode == 'wavemeter_only':
-                tasks = [wavemeter.WavemeterTask]
-            else:
-                tasks = [osa.OSATask, wavemeter.WavemeterTask]
+            if 'osa' in self.mode:
+                tasks['osa'] = osa.OSATask
+            if 'wavemeter' in self.mode:
+                tasks['wavemeter'] = wavemeter.WavemeterTask
 
-        for t in tasks:
-            self.tasks.append(t(self.loop, self.data_q, channel))
+        for name, t in tasks.items():
+            self.tasks[name] = t(self.loop, self.data_q, channel)
 
     def start_tasks(self):
-        for t in self.tasks:
+        for t in self.tasks.values():
             t.StartTask()
 
     def cancel_tasks(self):
         while self.tasks:
-            t = self.tasks.pop()
+            _, t = self.tasks.popitem()
             t.StopTask()
             t.ClearTask()
 

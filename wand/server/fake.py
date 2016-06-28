@@ -107,3 +107,6 @@ class WavemeterTask(FakeTask):
         f = random.choice([f, -3, -4], p=[0.9, 0.05, 0.05])
         d = {'source':'wavemeter', 'channel':self.channel.name, 'data':f}
         return d
+
+    def setExposure(self):
+        self._log.debug("Changing exposure time")

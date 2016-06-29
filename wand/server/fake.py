@@ -54,12 +54,13 @@ class OSATask(FakeTask):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self._data_length = 1600
+        self.samples = 16000
+        self.dwnsmp = 10
         # Set up generating function
         random.seed(self.channel.number)
-        width = random.randint(1, 10)
-        spacing = random.randint(300, 500)
-        n = int(self._data_length/spacing - 0.5)
+        width = random.randint(10, 100)
+        spacing = random.randint(3000, 5000)
+        n = int(self.samples/spacing - 0.5)
         centres = [(i+0.5)*spacing for i in range(n+1)]
         self._trace = self._get_trace(centres, width)
         random.seed()
@@ -67,9 +68,10 @@ class OSATask(FakeTask):
     def _get_data(self):
         scale = 1e4
         dx = random.randint(-5, 5)
-        data = np.arange(dx, self._data_length+dx)
-        # data = self._trace(data)
-        data = [self._trace(x) for x in data]
+        data = np.arange(dx, self.samples+dx)
+        data = np.asarray([self._trace(x) for x in data])
+        data.shape = int(self.samples/self.dwnsmp), self.dwnsmp
+        data = data.mean(axis=1)
         data = np.multiply(data, scale).astype(int)
         d = {'source':'osa', 'channel':self.channel.name, 'data':data.tolist(), 'scale':scale}
         return d

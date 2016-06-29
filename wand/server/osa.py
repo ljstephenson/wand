@@ -22,9 +22,12 @@ def set_frequency(frequency):
     global _FREQUENCY
     _FREQUENCY = frequency
 
+# Downsampling (reduces number of data points, not frequency)
+DWNSMP = 10
+
 # Parameters for data acquisition
-SAMPLES = 1600
-RATE = 1.25e5
+SAMPLES = 16000
+RATE = 1.25e6
 TIMEOUT = 0.1
 MIN_V = -1.0
 MAX_V = 1.0
@@ -94,6 +97,10 @@ class OSATask(PyDAQmx.Task):
                             SAMPLES, ctypes.byref(np.ctypeslib.as_ctypes(_read)), None)
         except Exception as e:
             self._log.error("Read Error: {}".format(e))
+
+        # Perform downsampling
+        data.shape = int(SAMPLES/DWNSMP), DWNSMP
+        data = data.mean(axis=1)
 
         # Multiply by 10000 and cast to int to truncate data
         scale = 1e4

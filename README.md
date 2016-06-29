@@ -101,6 +101,6 @@ wand_client <client-config>
 
 ## License
 
-Icon made using resources by [Freepik](http://www.freepik.com "Freepik") from 
-[www.flaticon.com](http://www.flaticon.com "Flaticon"), licensed by 
+Icon made using resources by [Freepik](http://www.freepik.com "Freepik") from
+[www.flaticon.com](http://www.flaticon.com "Flaticon"), licensed by
 [CC 3.0 BY](http://creativecommons.org/licenses/by/3.0/ "Creative Commons BY 3.0")

@@ -54,7 +54,8 @@ and don't want to develop it:
 pip install https://github.com/ljstephenson/wand/zipball/master
 ```
 
-This will install all the other dependencies at the same time.
+This will install all the other dependencies at the same time. Upgrades can be
+performed by adding the `--upgrade` option to the pip command.
 
 If you are going to be developing WAnD, you want to have an editable
 installation. Clone the repo and install it:
@@ -64,7 +65,10 @@ pip install -e <source-directory>
 ```
 
 Please develop on a branch other than master (e.g. dev) so that you don't break
-things for other people trying to install it!
+things for other people trying to install it! There's a simulation mode for the
+server that doesn't access either the wavemeter or the acquisition card (and
+doesn't require that the wavemeter dll is even installed) to use while
+developing, but produces data that is similar to real data.
 
 ## Testing
 
@@ -81,7 +85,8 @@ laser name.
 
 Configuration files are written in json for human readability - see the
 examples. Valid configuration files are on the shared area in
-<TODO:put them on the shared area>
+`wavemeters/config` for now, and a full breakdown of what the config means is
+in the [configuration readme](CONFIGURATION.md)
 
 Get the config files from the shared area, then on the wavemeter computer:
 ```

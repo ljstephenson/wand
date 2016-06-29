@@ -56,8 +56,6 @@ class Server(common.JSONRPCPeer):
         # Generator for cycling through configured channels infinitely
         self.ch_gen = itertools.cycle(self.channels)
 
-        self.clients = weakref.WeakValueDictionary()
-
         self.data_q = asyncio.Queue()
 
         self.tcp_server = None
@@ -140,16 +138,8 @@ class Server(common.JSONRPCPeer):
         self.connections[addr] = conn
         self._log.info("Incoming connection from {}".format(addr))
 
-        def register_connection(result):
-            if result not in self.clients:
-                self._log.info("Connection from {} registered: {}".format(addr, result))
-                self.clients[result] = conn
-                self.notify_server_state(result)
-            else:
-                self._log.info("Connection from {} rejected: name '{}' is already registered".format(addr, result))
-                self.notify(conn, 'connection_rejected',
-                            params={"server":self.name, "reason":"Client with same name already connected"})
-        self.request(conn, 'get_name', cb=register_connection)
+        self.request_list_server_channels(addr)
+        self.notify_server_state(addr)
 
         def client_disconnected(future):
             # Just removing connection from connections should be enough -
@@ -263,20 +253,6 @@ class Server(common.JSONRPCPeer):
     def rpc_get_name(self):
         return self.name
 
-    def rpc_register_client(self, client, channels):
-        """
-        Add the client to the send list for the list of channels
-        """
-        conn = self.clients.get(client)
-        result = {}
-        for c in channels:
-            self.channels[c].add_client(client, conn)
-            result[c] = self.channels[c].to_json(separators=(',', ':'))
-        return result
-
-    def rpc_unregister_client(self, client):
-        pass
-
     def rpc_configure_channel(self, channel, cfg):
         c = self.channels.get(channel)
         if c is not None:
@@ -312,6 +288,20 @@ class Server(common.JSONRPCPeer):
         self._log.debug("ECHO '{}'".format(s))
         return s
 
+
+    # -------------------------------------------------------------------------
+    # Requests to clients
+    #
+    def request_list_server_channels(self, client):
+        conn = self.connections[client]
+        def register_channels(channels):
+            for c in channels:
+                self.channels[c].add_client(client, conn)
+                self.notify_refresh_channel(c, client)
+        method='list_server_channels'
+        params={'server':self.name}
+        self._request_client(client, method, params, cb=register_channels)
+
     # -------------------------------------------------------------------------
     # Notifications to clients
     #
@@ -340,11 +330,14 @@ class Server(common.JSONRPCPeer):
         params = {"server":self.name, "speed":self.update_speed}
         self._notify_all(method, params)
 
-    def notify_refresh_channel(self, channel):
+    def notify_refresh_channel(self, channel, client=None):
         c = self.channels.get(channel)
         method = "refresh_channel"
         params = {"channel":channel, "cfg":c.to_json()}
-        self._notify_channel(channel, method, params)
+        if client is not None:
+            self._notify_client(client, method, params)
+        else:
+            self._notify_channel(channel, method, params)
 
     def notify_server_state(self, client=None):
         method = "server_state"
@@ -367,10 +360,15 @@ class Server(common.JSONRPCPeer):
     # -------------------------------------------------------------------------
     # Helper functions for channel/client requests
     #
-    def _notify_client(self, client, *args, **kwargs):
-        conn = self.clients.get(client)
+    def _request_client(self, client, *args, **kwargs):
+        conn = self.connections.get(client)
         if conn is not None:
-            self.loop.create_task(conn.notify(*args, **kwargs))
+            self.request(conn, *args, **kwargs)
+
+    def _notify_client(self, client, *args, **kwargs):
+        conn = self.connections.get(client)
+        if conn is not None:
+            self.notify(conn, *args, **kwargs)
 
     def _notify_channel(self, channel, *args, **kwargs):
         c = self.channels.get(channel)
@@ -379,12 +377,12 @@ class Server(common.JSONRPCPeer):
             self._log.error("Channel '{}' not found".format(channel))
         else:
             for conn in c.clients.values():
-                self.loop.create_task(conn.notify(*args, **kwargs))
+                self.notify(conn, *args, **kwargs)
 
     def _notify_all(self, *args, **kwargs):
         #print("\nNotify all: args: {} kwargs: {}".format(args, kwargs))
         for conn in self.connections.values():
-            self.loop.create_task(conn.notify(*args, **kwargs))
+            self.notify(conn, *args, **kwargs)
         #for conn in self.clients.values()
         #    conn.notify(*args, **kwargs)
 

@@ -88,10 +88,6 @@ class ClientBackend(common.JSONRPCPeer):
             future = self.loop.create_task(conn.listen())
             future.add_done_callback(disconnected)
 
-            # Wait to make sure client has replied with name before
-            # requesting channels
-            self.loop.call_later(1.0, self.request_register_client, server)
-
     def server_disconnected(self, server):
         """Called when server disconnects"""
         self._log.info("{} disconnected".format(server))
@@ -187,6 +183,10 @@ class ClientBackend(common.JSONRPCPeer):
     def rpc_ping(self, server):
         # self._log.debug("Ping from {}".format(server))
         pass
+
+    def rpc_list_server_channels(self, server):
+        """Return the configured list of channels under a server"""
+        return self.servers[server]['channels']
 
     # -------------------------------------------------------------------------
     # Requests for RPC

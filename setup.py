@@ -6,7 +6,7 @@ scripts = [
 ]
 
 setup(name='wand',
-    version='0.1.1',
+    version='0.1.2',
     packages=find_packages(),
     entry_points={
         "console_scripts": scripts,

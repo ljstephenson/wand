@@ -1,0 +1,39 @@
+{
+    "name":"TestClient3",
+    "servers":{
+        "TestServer1":{
+            "host":"localhost",
+            "port":8888,
+            "channels":[
+                "T1-393",
+                "T1-397",
+                "T1-850",
+                "T1-854",
+                "T1-866",
+                "T1-RaSlv",
+                "T1-RaMst"
+                ]
+            },
+        "TestServer2":{
+            "host":"localhost",
+            "port":8889,
+            "channels":[
+                "T2-423"
+                ]
+            }
+        },
+    "short_names":{
+            "393":"T1-393",
+            "397":"T1-397",
+            "850":"T1-850",
+            "854":"T1-854",
+            "866":"T1-866",
+            "RaSlv":"T1-RaSlv",
+            "RaMst":"T1-RaMst",
+            "423":"T2-423"
+        },
+    "layout":[
+            ["397", "393", "RaSlv", "RaMst"],
+            ["866", "854", "850", "423"]
+        ]
+}

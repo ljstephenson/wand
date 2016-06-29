@@ -1,0 +1,20 @@
+{
+    "name":"TestClient1",
+    "servers":{
+        "TestServer1":{
+            "host":"localhost",
+            "port":8888,
+            "channels":[
+                "T1-393",
+                "T1-397"
+                ]
+            }
+        },
+    "short_names":{
+            "393":"T1-393",
+            "397":"T1-397"
+        },
+    "layout":[
+            ["393", "397"]
+        ]
+}

@@ -449,7 +449,6 @@ class Server(common.JSONRPCPeer):
         last = self.last_log[channel][source]
         if last is None or now - last > self.log_interval[source]:
             self.last_log[channel][source] = now
-            self._log.debug("Logging data for {} from {}".format(channel, source))
             if not self.simulate:
                 if source == 'osa':
                     self.osa_log(data, now)
@@ -458,6 +457,8 @@ class Server(common.JSONRPCPeer):
 
     def osa_log(self, data, time):
         """Save the osa data"""
+        # Don't actually do anything for now
+        # self._log.debug("Logging data for {} from osa".format(data['channel']))
         pass
 
     # -------------------------------------------------------------------------
@@ -465,6 +466,7 @@ class Server(common.JSONRPCPeer):
     #
     def send_influx(self, data):
         """Send reformatted wavemeter data object to influxDB server"""
+        self._log.debug("Logging data for {} from wavemeter".format(data['channel']))
         self.influx_cl.write_points(self.data2influx(data))
 
     def data2influx(self, data):

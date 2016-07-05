@@ -23,6 +23,7 @@ class GUIChannel(Channel):
         self._dock = dock.Dock(self.name, autoOrientation=False)
         self._gui_layout()
         self._connect_callbacks()
+        self._enable_all(False)
 
     def _gui_init(self):
         """All GUI inititialisation (except dock) goes here"""
@@ -50,8 +51,7 @@ class GUIChannel(Channel):
         self._reference.setDecimals(5)
         self._reference.setSuffix(" THz")
 
-        self._lock = QtGui.QPushButton("View")
-        self._lock.setCheckable(True)
+        self._lock = QtGui.QRadioButton("View")
         self._save = QtGui.QPushButton("Save Settings")
 
     def _gui_layout(self):
@@ -79,6 +79,11 @@ class GUIChannel(Channel):
             self._dock.layout.setColumnMinimumWidth(i, 4)
         for i in [1,3,5]:
             self._dock.layout.setColumnStretch(i,1)
+
+    def _enable_all(self, enable):
+        """Enable or disable all editable boxes"""
+        for widget in [self._reference, self._exposure, self._lock, self._save]:
+            widget.setEnabled(enable)
 
     # -------------------------------------------------------------------------
     # Callbacks
@@ -206,6 +211,8 @@ class GUIChannel(Channel):
     def blue(self, val):
         self._blue = val
         self._short_name.setText(self.short_name, color=self.color)
+        # If the colour isn't grey then we can enable the buttons
+        self._enable_all(self.color != "7c7c7c")
 
     @property
     def dock(self):
@@ -226,16 +233,13 @@ class GUIServer(QtGui.QToolBar):
     def _create_widgets(self):
         self._echo = QtGui.QLineEdit()
         self._name = QtGui.QLabel(self.name)
-        self._pause = QtGui.QPushButton("Pause")
-        self._pause.setCheckable(True)
-        self._fast = QtGui.QPushButton("Fast Mode")
-        self._fast.setCheckable(True)
+        self._pause = QtGui.QRadioButton("Pause")
+        self._fast = QtGui.QRadioButton("Fast Mode")
 
     def _add_all(self):
-        self.addWidget(self._name)
-        self.addSeparator()
-        for widget in [self._pause, self._fast]:
+        for widget in [self._name, self._pause, self._fast]:
             self.addWidget(widget)
+            self.addSeparator()
 
     # -------------------------------------------------------------------------
     # Widget callbacks

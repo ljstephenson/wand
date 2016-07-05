@@ -301,7 +301,7 @@ class Server(common.JSONRPCPeer):
                     self.channels[c].add_client(client, conn)
                     self.notify_refresh_channel(c, client)
                 except KeyError:
-                    msg = "Error registering client: Channel {} not recognised".format(c)
+                    msg = "Error registering client: Channel '{}' not recognised".format(c)
                     self.notify_log(client, lvl=logging.ERROR, msg=msg)
                     self._log.error(msg)
         method='list_server_channels'

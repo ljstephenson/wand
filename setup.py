@@ -7,6 +7,8 @@ scripts = [
 
 setup(name='wand',
     version='0.1.2',
+    url='https://github.com/ljstephenson/wand',
+    author='Laurent Stephenson',
     packages=find_packages(),
     entry_points={
         "console_scripts": scripts,
@@ -17,5 +19,6 @@ setup(name='wand',
         'PyDAQmx>=1',
         'quamash',
     ],
-    package_data={'':['*.svg']}
+    package_data={'wand':['resources/*.svg', 'resources/*.json']},
+    include_package_data=True
 )

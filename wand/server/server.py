@@ -5,6 +5,7 @@ import itertools
 import asyncio
 import collections
 import weakref
+import logging
 from influxdb import InfluxDBClient
 
 import wand.server.osa as osa
@@ -296,8 +297,13 @@ class Server(common.JSONRPCPeer):
         conn = self.connections[client]
         def register_channels(channels):
             for c in channels:
-                self.channels[c].add_client(client, conn)
-                self.notify_refresh_channel(c, client)
+                try:
+                    self.channels[c].add_client(client, conn)
+                    self.notify_refresh_channel(c, client)
+                except KeyError:
+                    msg = "Error registering client: Channel {} not recognised".format(c)
+                    self.notify_log(client, lvl=logging.ERROR, msg=msg)
+                    self._log.error(msg)
         method='list_server_channels'
         params={'server':self.name}
         self._request_client(client, method, params, cb=register_channels)
@@ -351,6 +357,11 @@ class Server(common.JSONRPCPeer):
             self._notify_client(client, method, params)
         else:
             self._notify_all(method, params)
+
+    def notify_log(self, client, lvl, msg):
+        method = "log"
+        params = {'lvl':lvl, 'msg':msg}
+        self._notify_client(client, method, params)
 
     def ping(self):
         method = "ping"

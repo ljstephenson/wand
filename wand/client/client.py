@@ -188,6 +188,10 @@ class ClientBackend(common.JSONRPCPeer):
         """Return the configured list of channels under a server"""
         return self.servers[server]['channels']
 
+    def rpc_log(self, server, lvl, msg):
+        """Servers can call this to use the client log"""
+        self._log.log(lvl, "{} says: {}".format(server, msg))
+
     # -------------------------------------------------------------------------
     # Requests for RPC
     #

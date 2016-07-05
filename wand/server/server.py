@@ -360,7 +360,7 @@ class Server(common.JSONRPCPeer):
 
     def notify_log(self, client, lvl, msg):
         method = "log"
-        params = {'lvl':lvl, 'msg':msg}
+        params = {'server':self.name, 'lvl':lvl, 'msg':msg}
         self._notify_client(client, method, params)
 
     def ping(self):

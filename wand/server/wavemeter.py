@@ -55,11 +55,15 @@ cMeasurement = ctypes.c_ushort(2)
 cCtrlMeasurementTriggerSuccess = 3
 # -----------------------------------------------------------------------------
 
-def init():
+def init(as_switcher):
     """
     Initialise the wavemeter
     """
     global lib
+
+    # Boolean telling us whether the wlm is being used as a switcher as well
+    global _SWITCHER
+    _SWITCHER = as_switcher
 
     # Open the DLL
     lib = ctypes.WinDLL('C:\Windows\system32\wlmData.dll')
@@ -70,9 +74,12 @@ def init():
     # Turn off auto-switcher mode
     lib.SetSwitcherMode( ctypes.c_long(0) )
 
-    # Turn off auto exposure in all channels (1-8)
-    for i in range(8):
-        lib.SetExposureModeNum(i+1, 0)
+    if _SWITCHER:
+        # Turn off auto exposure in all channels (1-8)
+        for i in range(8):
+            lib.SetExposureModeNum(i+1, 0)
+    else:
+        lib.SetExposureModeNum(1, 0)
 
     # Set to measuring normally
     lib.Operation(cMeasurement)
@@ -82,6 +89,8 @@ def switch(number=1):
     """
     Switch to the supplied channel number
     """
+    if not _SWITCHER:
+        raise Exception("Wavemeter is not the currently active fibre switcher")
     lib.SetSwitcherChannel(number)
 
 # Callback type to be defined. This must be in scope as long as the callback is
@@ -144,7 +153,7 @@ class WavemeterTask(object):
         """Call after updating channel exposure"""
         self._log.debug("Setting wavemeter exposure")
         self.exposure = self.channel.exposure
-        lib.SetExposureNum(self.channel.number,
+        lib.SetExposureNum(self.channel.number if _SWITCHER else 1,
                            self.channel.array,
                            self.channel.exposure)
 
@@ -159,7 +168,8 @@ class WavemeterTask(object):
         lib.TriggerMeasurement(cCtrlMeasurementTriggerSuccess)
         await asyncio.sleep(1.0/_FREQUENCY)
 
-        f = lib.GetFrequencyNum(self.channel.number, ctypes.c_double(0))
+        f = lib.GetFrequencyNum(self.channel.number if _SWITCHER else 1,
+                                ctypes.c_double(0))
         d = {'source':'wavemeter', 'channel':self.channel.name, 'data':f}
 
         if not self.loop.is_closed():

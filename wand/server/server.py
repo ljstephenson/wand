@@ -96,7 +96,9 @@ class Server(common.JSONRPCPeer):
     def configure_wavemeter(self):
         """Initialise wavemeter"""
         if not self.simulate:
-            wavemeter.init()
+            # Wavemeter initialisation needs to know if it's being used as the
+            # switcher as well
+            wavemeter.init(self.switcher['name'] == "wavemeter")
             self._log.debug("Wavemeter ready")
 
     def startup(self):

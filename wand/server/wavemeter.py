@@ -118,6 +118,9 @@ class WavemeterTask(object):
         self._future = None
         self._callback = None
         self._mode = "poll"
+        # If the wavemeter is not the switcher then the first result will be
+        # garbage and must be discarded
+        self._first = not _SWITCHER
 
         self.setExposure()
 
@@ -172,8 +175,9 @@ class WavemeterTask(object):
                                 ctypes.c_double(0))
         d = {'source':'wavemeter', 'channel':self.channel.name, 'data':f}
 
-        if not self.loop.is_closed():
+        if not self.loop.is_closed() and not self._first:
             self.loop.create_task(self.queue.put(d))
+        self._first = False
 
         if self._active:
             self._future = self.loop.create_task(self.measure())

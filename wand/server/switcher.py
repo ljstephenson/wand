@@ -2,6 +2,7 @@
 Interface to Leoni Fibre switcher
 """
 import socket
+import time
 
 from wand.common import with_log
 
@@ -43,6 +44,7 @@ class LeoniSwitcher(object):
         if channel < 0 or channel >= self.nChannels:
             raise ValueError('Channel out of bounds')
         self._sendCommand( 'ch{}'.format(channel) )
+        time.sleep(2e-3)
 
     def getChannel(self):
         """Get the currently selected channel number"""

@@ -293,8 +293,6 @@ class ClientGUI(ClientBackend):
         super().__init__(GUIChannel, *args, **kwargs)
 
         self.place_channels()
-        self.create_toolbars()
-        self.place_toolbars()
 
     def show(self):
         self.win.show()

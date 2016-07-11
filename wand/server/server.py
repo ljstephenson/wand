@@ -62,7 +62,7 @@ class Server(common.JSONRPCPeer):
         self.tcp_server = None
         self.locked = None
         self.pause = False
-        self.fast = False
+        self.fast = True
         self.setup_data_rate()
 
         # Switching task is stored to allow cancellation
@@ -157,7 +157,7 @@ class Server(common.JSONRPCPeer):
                 self._log.info("No more clients connected, force switching mode")
                 self.locked = False
                 self.pause = False
-                self.fast = False
+                self.fast = True
                 self.setup_data_rate()
                 self.loop.call_soon(self.select)
         future.add_done_callback(client_disconnected)

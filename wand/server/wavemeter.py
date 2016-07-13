@@ -5,9 +5,9 @@ import ctypes
 import asyncio
 import enum
 from wand.common import with_log
+from wand.server.wlmconstants import *
 
 __all__ = [
-    'WavemeterError',
     'WavemeterTask',
     'init',
     'switch',
@@ -20,40 +20,6 @@ def set_frequency(frequency):
     global _FREQUENCY
     _FREQUENCY = frequency
 
-# -----------------------------------------------------------------------------
-# Constants
-#
-# (Should be able to get these from the DLL, but had some difficulties)
-@enum.unique
-class WavemeterError(enum.Enum):
-    """
-    Values returned on error from GetFrequencyNum
-    """
-    NoValue = 0
-    NoSignal = -1
-    BadSignal = -2
-    LowSignal = -3
-    BigSignal = -4
-    WlmMissing = -5
-    NotAvailable = -6
-    NothingChanged = -7
-    NoPulse = -8
-
-# Instantiating Constants for 'RFC' parameter
-cInstNotification = 1
-
-# Notification constants for 'Mode' parameter
-cNotifyInstallCallback = 1
-cNotifyRemoveCallback = 2
-
-# Operation Mode Constants
-cStop = ctypes.c_ushort(0)
-cAdjustment = ctypes.c_ushort(1)
-cMeasurement = ctypes.c_ushort(2)
-
-# Measurement triggering action constants
-cCtrlMeasurementTriggerSuccess = 3
-# -----------------------------------------------------------------------------
 
 def init(as_switcher):
     """
@@ -92,6 +58,7 @@ def switch(number=1):
     if not _SWITCHER:
         raise Exception("Wavemeter is not the currently active fibre switcher")
     lib.SetSwitcherChannel(number)
+
 
 # Callback type to be defined. This must be in scope as long as the callback is
 # in use, so just define it here

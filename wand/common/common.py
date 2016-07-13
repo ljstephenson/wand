@@ -173,6 +173,8 @@ class JSONConfigurable(object):
                     # Form the dictionary of new sub items
                     _dict = collections.OrderedDict()
                     for name, sub_cfg in val.items():
+                        # key is used as name field as well
+                        sub_cfg['name'] = name
                         _dict[name] = cls(cfg=sub_cfg)
 
                     # Update the current dictionary with the new one

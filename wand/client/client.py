@@ -10,6 +10,7 @@ import random
 
 import wand.common as common
 from wand.client.channel import Channel
+from wand import __version__
 
 
 @common.with_log
@@ -192,6 +193,9 @@ class ClientBackend(common.JSONRPCPeer):
         """Servers can call this to use the client log"""
         self._log.log(lvl, "{} says: {}".format(server, msg))
 
+    def rpc_version(self):
+        return __version__
+
     # -------------------------------------------------------------------------
     # Requests for RPC
     #
@@ -239,22 +243,26 @@ class ClientBackend(common.JSONRPCPeer):
         self._server_request(server, method, params, cb=update_channels)
 
     def request_echo(self, server, string):
-        s = self.servers.get(server)
         method = "echo"
         params = {"s":string}
         self._server_request(server, method, params)
 
     def request_pause(self, server, pause):
-        s = self.servers.get(server)
         method = "pause"
         params = {"pause":pause}
         self._server_request(server, method, params)
 
     def request_fast(self, server, fast):
-        s = self.servers.get(server)
         method = "fast"
         params = {"fast":fast}
         self._server_request(server, method, params)
+
+    def request_version(self, server):
+        def checker(version):
+            if version != __version__:
+                FATAL()
+        method = "version"
+        self._server_request(server, method, cb=checker)
 
     # -------------------------------------------------------------------------
     # Helpers for channel/server requests

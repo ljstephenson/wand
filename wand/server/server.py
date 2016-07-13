@@ -14,6 +14,7 @@ import wand.server.switcher as switcher
 import wand.server.fake as fake
 import wand.common as common
 from wand.server.channel import Channel
+from wand import __version__
 
 
 @common.with_log
@@ -291,6 +292,8 @@ class Server(common.JSONRPCPeer):
         self._log.debug("ECHO '{}'".format(s))
         return s
 
+    def rpc_version(self):
+        return __version__
 
     # -------------------------------------------------------------------------
     # Requests to clients

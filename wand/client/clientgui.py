@@ -7,6 +7,7 @@ import collections
 
 from wand.client.client import ClientBackend
 from wand.client.channel import Channel
+from wand.client.server import Server
 from wand.common import with_log
 
 import time
@@ -273,24 +274,24 @@ class GUIServer(QtGui.QToolBar):
             self._fast.toggle()
 
 
+class GUIServerLite(Server):
+    """docstring for GUIServer"""
+    def __init__(self, *args, **kwargs):
+        self._attrs.update({"channels":GUIChannel})
+        super().__init__(*args, **kwargs)
+
+
 @with_log
 class ClientGUI(ClientBackend):
-    # List of configurable attributes (maintains order when dumping config)
-    # These will all be initialised during __init__ in the call to 
-    # super.__init__ because JSONRPCPeer is a JSONConfigurable
-    _attrs = collections.OrderedDict([
-                ('name', None),
-                ('servers', None),
-                ('short_names', None),
-                ('layout', None),
-            ])
     def __init__(self, *args, **kwargs):
+        self._attrs.update({"servers":GUIServerLite})
+
         self.win = QtGui.QMainWindow()
         self.area = dock.DockArea()
         self.win.setCentralWidget(self.area)
         self.win.setWindowTitle("Super-duper Python Wavemeter Viewer!")
 
-        super().__init__(GUIChannel, *args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.place_channels()
         self.create_toolbars()

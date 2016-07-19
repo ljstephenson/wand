@@ -24,9 +24,9 @@ class Channel(common.JSONConfigurable):
                 ('array', None),
                 ('blue', None),
             ])
-    def __init__(self, client, *args, **kwargs):
-        self.client = client
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self.client = None
 
     @property
     def detuning(self):

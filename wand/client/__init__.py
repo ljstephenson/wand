@@ -14,6 +14,7 @@ else:
 
 QtCore = __import__(QtModuleName + '.QtCore', fromlist=(QtModuleName,))
 QtGui = __import__(QtModuleName + '.QtGui', fromlist=(QtModuleName,))
+QtNetwork = __import__(QtModuleName + '.QtNetwork', fromlist=(QtModuleName,))
 if QtModuleName == 'PyQt5':
 	from PyQt5 import QtWidgets
 	QApplication = QtWidgets.QApplication

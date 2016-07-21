@@ -1,8 +1,6 @@
 import sys
 import argparse
 from . import QtGui
-from quamash import QEventLoop
-import asyncio
 import logging
 import pkg_resources
 
@@ -22,8 +20,6 @@ def main():
     logging.getLogger('wand').setLevel(level)
 
     app = QtGui.QApplication([])
-    loop = QEventLoop(app)
-    asyncio.set_event_loop(loop)
     set_icon(app)
 
     c = clientgui.ClientGUI(fname=args.filename)
@@ -32,7 +28,7 @@ def main():
     # Main event loop running forever
     try:
         c.show()
-        loop.run_forever()
+        app.exec_()
     except KeyboardInterrupt as e:  
         log.info("Quitting due to user keyboard interrupt")
     except SystemExit as e:
@@ -43,8 +39,6 @@ def main():
         raise
     finally:
         c.shutdown()
-        loop.stop()
-        loop.close()
 
     sys.exit()
 

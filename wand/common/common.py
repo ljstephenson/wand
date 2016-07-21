@@ -13,6 +13,7 @@ import os
 
 __all__ = [
     'with_log',
+    'get_log_name',
     'add_verbosity_args',
     'get_verbosity_level',
     'JSONRPCPeer',

@@ -10,14 +10,12 @@ import random
 
 import wand.common as common
 from wand.client.server import Server
+from wand.client.peer import RPCClient
 from wand import __version__
 
 
 @common.with_log
-class ClientBackend(common.JSONRPCPeer):
-    # List of configurable attributes (maintains order when dumping config)
-    # These will all be initialised during __init__ in the call to 
-    # super.__init__ because JSONRPCPeer is a JSONConfigurable
+class ClientBackend(RPCClient):
     _attrs = collections.OrderedDict([
                 ('name', None),
                 ('servers', Server),
@@ -42,76 +40,6 @@ class ClientBackend(common.JSONRPCPeer):
                 self.channels[c.name] = c
                 self.name_map[c.name] = c.short_name
                 self.short_names[c.short_name] = c.name
-
-    def startup(self):
-        """Place all startup methods here"""
-        self.running = True
-        for s in self.servers:
-            self.loop.run_until_complete(self.server_connect(s))
-        self.do_nothing()
-        self._log.info("Ready")
-
-    def shutdown(self):
-        """Place all shutdown methods here"""
-        self.running = False
-        self.cancel_pending_tasks()
-        self.close_connections()
-        self._log.info("Shutdown finished")
-
-    # -------------------------------------------------------------------------
-    # Network operations
-    #
-    async def server_connect(self, server, attempt=1):
-        """Connect to the named server"""
-        def disconnected(future):
-            """Simple closure so that we can tell which server disconnected"""
-            self.server_disconnected(server)
-
-        s = self.servers.get(server)
-        try:
-            reader, writer = await asyncio.open_connection(s.host, s.port)
-        except (ConnectionRefusedError, WindowsError) as e:
-            self._log.error("Connection failed: {}".format(e))
-            self.loop.create_task(self.server_reconnect(server, attempt))
-        else:
-            s.connected = True
-            conn = common.JSONRPCConnection(self.handle_rpc, reader, writer)
-            addr = writer.get_extra_info('peername')
-
-            self.connections[addr] = conn
-            self.conns_by_s[server] = conn
-
-            for c in s.channels:
-                self.conns_by_c[c] = conn
-                
-            future = self.loop.create_task(conn.listen())
-            future.add_done_callback(disconnected)
-
-    def server_disconnected(self, server):
-        """Called when server disconnects"""
-        self.servers.get(server).connected = False
-        self._log.info("{} disconnected".format(server))
-        conn = self.conns_by_s.pop(server, None)
-        if conn:
-            conn.close()
-            del conn
-        if self.running:
-            self.loop.create_task(self.server_reconnect(server))
-
-    async def server_reconnect(self, server, attempt=0):
-        backoff = 10 * attempt * random.random()
-        attempt = attempt + 1
-        if attempt < 5:
-            self._log.info("Attempting reconnect after {:.1f}s".format(backoff))
-            await asyncio.sleep(backoff)
-            await self.server_connect(server, attempt)
-        else:
-            self.loop.stop()
-            self._log.error("Aborted reconnect to '{}': too many failures".format(server))
-
-    def abort_connection(self, server, reason):
-        self.loop.stop()
-        self._log.error("'{}' refused connection: {}".format(server, reason))
 
     # -------------------------------------------------------------------------
     # RPC methods implemented by this class
@@ -176,12 +104,6 @@ class ClientBackend(common.JSONRPCPeer):
 
     def rpc_uptime(self, server, uptime):
         self.servers.get(server).uptime = uptime
-
-    def rpc_connection_rejected(self, server, reason):
-        """Called by server to indicate that the connection was rejected"""
-        # Deliberately not called connection_refused - in this case the
-        # connection was made but the server rejected it for another reason
-        self.loop.call_soon(self.abort_connection, server, reason)
 
     def rpc_ping(self, server):
         # self._log.debug("Ping from {}".format(server))
@@ -290,7 +212,6 @@ class ClientBackend(common.JSONRPCPeer):
     # Misc
     #
     def fatal(self, reason):
-        self.loop.stop()
         self._log.critical(reason)
 
     def get_channel_by_short_name(self, short_name):

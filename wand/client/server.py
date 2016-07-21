@@ -27,3 +27,7 @@ class Server(common.JSONConfigurable):
 
         self.connected = False
         self.client = None
+
+    @property
+    def addr(self):
+        return (self.host, self.port)

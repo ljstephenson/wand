@@ -8,13 +8,25 @@ import weakref
 import logging
 from influxdb import InfluxDBClient
 
-import wand.server.osa as osa
-import wand.server.wavemeter as wavemeter
-import wand.server.switcher as switcher
-import wand.server.fake as fake
 import wand.common as common
 from wand.server.channel import Channel
 from wand import __version__
+
+def import_modules(simulate):
+    """Some modules should not be imported if running as simulation"""
+    global switcher, osa, wavemeter
+    if simulate:
+        import wand.server.fake
+        osa = wand.server.fake
+        wavemeter = wand.server.fake
+        switcher = wand.server.fake
+    else:
+        import wand.server.osa
+        import wand.server.wavemeter
+        import wand.server.switcher
+        osa = wand.server.osa
+        wavemeter = wand.server.wavemeter
+        switcher = wand.server.switcher
 
 
 @common.with_log
@@ -46,6 +58,7 @@ class Server(common.JSONRPCPeer):
     def __init__(self, simulate=False, **kwargs):
         super().__init__(**kwargs)
         self.check_config()
+        import_modules(simulate)
         self.simulate = simulate
         self.get_switcher()
         self.configure_osa()
@@ -192,11 +205,8 @@ class Server(common.JSONRPCPeer):
 
         self._log.info("Setting to {} mode".format(speed))
         f = self.data_frequency[speed]
-        if self.simulate:
-            fake.set_frequency(f)
-        else:
-            osa.set_frequency(f)
-            wavemeter.set_frequency(f)
+        osa.set_frequency(f)
+        wavemeter.set_frequency(f)
 
     # -------------------------------------------------------------------------
     # RPC methods
@@ -430,16 +440,10 @@ class Server(common.JSONRPCPeer):
     #
     def new_tasks(self, channel):
         tasks = {}
-        if self.simulate:
-            if 'osa' in self.mode:
-                tasks['osa'] = fake.OSATask
-            if 'wavemeter' in self.mode:
-                tasks['wavemeter'] = fake.WavemeterTask
-        else:
-            if 'osa' in self.mode:
-                tasks['osa'] = osa.OSATask
-            if 'wavemeter' in self.mode:
-                tasks['wavemeter'] = wavemeter.WavemeterTask
+        if 'osa' in self.mode:
+            tasks['osa'] = osa.OSATask
+        if 'wavemeter' in self.mode:
+            tasks['wavemeter'] = wavemeter.WavemeterTask
 
         for name, t in tasks.items():
             self.tasks[name] = t(self.loop, self.data_q, channel)

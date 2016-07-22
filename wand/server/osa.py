@@ -32,7 +32,6 @@ TIMEOUT = 0.1
 MIN_V = -1.0
 MAX_V = 1.0
 
-
 def channel_setup(config):
     """Set up the channels to be used in the DAQ card"""
     global AI_BLUE, AI_RED, TRIG_BLUE, TRIG_RED

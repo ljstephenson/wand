@@ -173,7 +173,8 @@ class Server(common.JSONRPCPeer):
                 self.pause = False
                 self.fast = True
                 self.setup_data_rate()
-                self.loop.call_soon(self.select)
+                if not self._next:
+                    self._next = self.loop.call_soon(self.select)
         future.add_done_callback(client_disconnected)
 
     # -------------------------------------------------------------------------
@@ -227,7 +228,7 @@ class Server(common.JSONRPCPeer):
         if not self.pause:
             if self._next:
                 self.loop.call_soon(self._next.cancel)
-            self.loop.call_soon(self.select, channel)
+            self._next = self.loop.call_soon(self.select, channel)
 
 
     def rpc_unlock(self):
@@ -251,9 +252,9 @@ class Server(common.JSONRPCPeer):
                 # Resume
                 self._log.info("Unpausing")
                 if self.locked:
-                    self.loop.call_soon(self.select, self.locked)
+                    self._next = self.loop.call_soon(self.select, self.locked)
                 else:
-                    self.loop.call_soon(self.select)
+                    self._next = self.loop.call_soon(self.select)
             self.pause = pause
             self.loop.call_soon(self.notify_paused)
 

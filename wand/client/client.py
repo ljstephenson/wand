@@ -10,12 +10,12 @@ import random
 
 import wand.common as common
 from wand.client.server import Server
-from wand.client.peer import RPCClient
+from wand.client.peer import RPCClient, ThreadClient
 from wand import __version__
 
-
+# Switch between ThreadClient and RPCClient at will
 @common.with_log
-class ClientBackend(RPCClient):
+class ClientBackend(ThreadClient):
     _attrs = collections.OrderedDict([
                 ('name', None),
                 ('servers', Server),

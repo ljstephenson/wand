@@ -59,7 +59,7 @@ class OSATask(FakeTask):
 
         # Generate two traces and flick between them
         random.seed(self.channel.number)
-        width = random.randint(10, 100)
+        width = random.randint(5, 10)
         spacing = random.randint(300, 500)
         n = int(self.samples/spacing - 0.5)
         centres = [(i+0.5)*spacing for i in range(n+1)]

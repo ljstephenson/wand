@@ -1,3 +1,4 @@
+import itertools
 import numpy as np
 import numpy.random as random
 
@@ -19,7 +20,7 @@ def set_frequency(frequency):
 class FakeTask(object):
     """Fake task that mimics data production but does not access hardware"""
     def __init__(self, loop, queue, channel):
-        self._log.debug("Creating Task object for channel: {}".format(channel.name))
+        #self._log.debug("Creating Task object for channel: {}".format(channel.name))
         self.loop = loop
         self.queue = queue
         self.channel = channel
@@ -54,24 +55,28 @@ class OSATask(FakeTask):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.samples = 16000
-        self.dwnsmp = 10
-        # Set up generating function
+        self.samples = 1600
+
+        # Generate two traces and flick between them
         random.seed(self.channel.number)
         width = random.randint(10, 100)
-        spacing = random.randint(3000, 5000)
+        spacing = random.randint(300, 500)
         n = int(self.samples/spacing - 0.5)
         centres = [(i+0.5)*spacing for i in range(n+1)]
+
         self._trace = self._get_trace(centres, width)
-        random.seed()
+
+        # Infinite generator using two traces
+        self.data = itertools.cycle(self._get_trace_data() for _ in range(2))
+
 
     def _get_data(self):
+        return next(self.data)
+
+    def _get_trace_data(self):
         scale = 1e4
-        dx = random.randint(-5, 5)
-        data = np.arange(dx, self.samples+dx)
+        data = np.arange(self.samples)
         data = np.asarray([self._trace(x) for x in data])
-        data.shape = int(self.samples/self.dwnsmp), self.dwnsmp
-        data = data.mean(axis=1)
         data = np.multiply(data, scale).astype(int)
         d = {'source':'osa', 'channel':self.channel.name, 'data':data.tolist(), 'scale':scale}
         return d
@@ -97,20 +102,13 @@ class WavemeterTask(FakeTask):
         super().__init__(*args, **kwargs)
         self.exposure = self.channel.exposure
 
-        # Set up an approximate detuning Thz, consistent per channel
-        random.seed(self.channel.number)
-        self._detuning = (random.random()-0.5)*4e-3
-        random.seed()
-
     def _get_data(self):
         if self.exposure != self.channel.exposure:
             self.setExposure()
 
-        # set scale of wobble to be +/-1 MHz i.e. 1e-6THz
-        wobble = (random.random()-0.5)*2e-6
-        f = self.channel.reference + self._detuning + wobble
-        # Occasionally send errors
-        f = random.choice([f, -3, -4], p=[0.9, 0.05, 0.05])
+        f = self.channel.reference
+        # Choose between f, f+1MHz, Low signal, High signal
+        f = random.choice([f, f + 1e-6, -3, -4], p=[0.4, 0.4, 0.1, 0.1])
         d = {'source':'wavemeter', 'channel':self.channel.name, 'data':f}
         return d
 

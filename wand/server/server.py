@@ -522,11 +522,40 @@ class Server(common.JSONRPCPeer):
         ]
 
     # -------------------------------------------------------------------------
+    # Misc
+    #
+    def check_version(self, version, owner):
+        """
+        Checks a version string against the internal running version.
+
+        Raise an assertion error on major mismatch, return False on a
+        minor mismatch and True otherwise.
+        """
+        # Versions consist of 3 numbers separated by dots, so split on
+        # the dots for Major/Minor/Patch number
+        vtuple = version.split('.')
+        internal = __version__.split('.')
+        msg = "{{}} version mismatch: server {}, {} {}".format(__version__,
+                                                               owner, version)
+
+        assert vtuple[0] == internal[0], msg.format("Major")
+
+        if vtuple[1] != internal[1]:
+            self._log.warning(msg.format("Minor"))
+            return False
+        else:
+            self._log.debug("Server and {} versions match".format(owner))
+            return True
+
+    # -------------------------------------------------------------------------
     # Config sanitiser
     #
     def check_config(self):
         """Check the current config for errors and flag them"""
         try:
+            # Raises AssertionError on major mismatch
+            self.check_version(self.version, "config")
+
             numbers = []
             for name, channel in self.channels.items():
                 assert name == channel.name, "{}: Name doesn't match key".format(name)

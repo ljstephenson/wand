@@ -7,8 +7,8 @@ import json
 import jsonrpc
 import logging
 import queue
-import threading
 import socket
+import threading
 from . import QtCore, QtNetwork
 
 from wand.common import JSONConfigurable, with_log, get_log_name
@@ -28,12 +28,16 @@ class BaseConnection(object):
 
     def request(self, _id, method, params=None, cb=None):
         """Make an RPC request"""
-        request = {'jsonrpc':'2.0', 'id':_id, 'method':method, 'params':params}
+        request = {'jsonrpc':'2.0', 'id':_id, 'method':method}
+        if params:
+            request['params'] = params
         self.send_object(request)
 
     def notify(self, method, params=None):
         """Send a notification"""
-        notification = {'jsonrpc':'2.0', 'method':method, 'params':params}
+        notification = {'jsonrpc':'2.0', 'method':method}
+        if params:
+            notification['params'] = params
         self.send_object(notification)
 
     def send_object(self, obj):
@@ -125,7 +129,7 @@ class RPCPeer(JSONConfigurable):
         if callable(cb):
             self.results[_id] = cb
 
-        conn.request(method, _id, params)
+        conn.request(_id, method, params)
 
     def notify(self, conn, method, params=None):
         """Send a notification over the connection"""
@@ -194,7 +198,6 @@ class Decoder(QtCore.QObject):
         self.decoder = json.JSONDecoder()
 
     def decode(self, msg):
-        #print("hello from thread {}".format(QtCore.QThread.currentThreadId()))
         obj = None
         if msg:
             message = self.buf + msg
@@ -286,7 +289,6 @@ class RPCConnection(QtCore.QObject, BaseConnection):
     def get_listen(self):
         def listen():
             """Called when data is available"""
-            #print("hello from thread {}".format(QtCore.QThread.currentThreadId()))
             obj = None
             data = self.sock.read(self.sock.bytesAvailable())
             self.msgReady.emit(data.decode())
@@ -381,6 +383,8 @@ class ThreadConnection(QtCore.QObject, BaseConnection):
             except socket.timeout as e:
                 break
             else:
+                if not data:
+                    break
                 message = data.decode()
                 self.jsonDecoder.decode(message)
 

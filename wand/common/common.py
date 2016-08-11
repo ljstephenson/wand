@@ -9,7 +9,6 @@ import jsonrpc
 import logging
 import logging.handlers
 import os
-import time
 
 __all__ = [
     'with_log',
@@ -24,15 +23,17 @@ __all__ = [
 
 
 def with_log(cls):
-	"""Decorator to add a logger to a class."""
-	setattr(cls, '_log', logging.getLogger(cls.__module__ + '.' + cls.__qualname__))
-	return cls
+    """Decorator to add a logger to a class."""
+    setattr(cls, '_log', logging.getLogger(cls.__module__ + '.' + cls.__qualname__))
+    return cls
+
 
 def add_verbosity_args(parser):
     """Add args for verbose/quiet to an argparser"""
     group = parser.add_mutually_exclusive_group()
     group.add_argument("-v", "--verbose", help="Increase output verbosity", action="count")
     group.add_argument("-q", "--quiet", help="Decrease output verbosity", action="count")
+
 
 def get_verbosity_level(args):
     """Set logging level given parsed args"""
@@ -45,6 +46,7 @@ def get_verbosity_level(args):
         new_level = (logging.WARNING + 10*args.quiet)
         level = new_level if new_level <= logging.CRITICAL else logging.CRITICAL
     return level
+
 
 def get_log_name(name):
     """Platform independent way of getting appropriate log name"""
@@ -116,7 +118,7 @@ class JSONConfigurable(object):
     def cfg_from_file(self, fname=None):
         """Return the configuration dict from a file"""
         if fname is not None:
-            self.filename = fname            
+            self.filename = fname
 
         with open(self.filename, 'r') as f:
             cfg = json.load(f, object_pairs_hook=collections.OrderedDict)
@@ -186,7 +188,6 @@ class JSONConfigurable(object):
                 else:
                     # Just store the raw value
                     setattr(self, attr, val)
-
 
     def to_dict(self):
         """Return the dict representing this item's configuration"""
@@ -363,7 +364,7 @@ class JSONRPCPeer(JSONConfigurable):
 
     def _result_handler(self, result):
         """Default to logging successes"""
-        #self._log.debug("RPC returned:{}".format(result))
+        # self._log.debug("RPC returned:{}".format(result))
         pass
 
     @property
@@ -379,7 +380,6 @@ class JSONRPCPeer(JSONConfigurable):
         Hopefully we shouldn't ever have 65535 pending responses...
         """
         self._next_id = ctypes.c_ushort(value)
-
 
 
 class JSONRPCConnection(object):
@@ -457,7 +457,7 @@ class JSONStreamIterator(object):
         while not obj:
             try:
                 data = await self.reader.read(2**12)
-                 # print("*", end='', flush=True)
+                # print("*", end='', flush=True)
             except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError) as e:
                 # print("got a connection error")
                 data = None
@@ -483,4 +483,3 @@ class JSONStreamIterator(object):
                 return None
         # print("!", end='', flush=True)
         return obj
-

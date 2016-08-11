@@ -2,9 +2,7 @@
 Client for laser diagnostic operations
 """
 import collections
-import functools
 import numpy as np
-import sys
 import time
 import weakref
 
@@ -12,18 +10,19 @@ from . import QtGui
 
 import wand.common as common
 from wand.client.server import Server
-from wand.client.peer import RPCClient, ThreadClient
+from wand.client.peer import ThreadClient
 from wand import __version__
 
-# Switch between ThreadClient and RPCClient at will
+
 @common.with_log
 class ClientBackend(ThreadClient):
     _attrs = collections.OrderedDict([
-                ('name', None),
-                ('version', None),
-                ('servers', Server),
-                ('layout', None),
-            ])
+        ('name', None),
+        ('version', None),
+        ('servers', Server),
+        ('layout', None),
+    ])
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.check_config()
@@ -125,7 +124,8 @@ class ClientBackend(ThreadClient):
         pass
 
     def rpc_timestamp(self, server, timestamp):
-        self._log.debug("{} timestamp:{}".format(server, time.ctime(timestamp)))
+        self._log.debug("{} timestamp:{}".format(server,
+                                                 time.ctime(timestamp)))
 
     def rpc_list_server_channels(self, server):
         """Return the configured list of channels under a server"""
@@ -250,7 +250,7 @@ class ClientBackend(ThreadClient):
         vtuple = version.split('.')
         internal = __version__.split('.')
         msg = "{{}} version mismatch: client {}, {} {}".format(__version__,
-                                                             owner, version)
+                                                               owner, version)
 
         assert vtuple[0] == internal[0], msg.format("Major")
 
@@ -276,16 +276,16 @@ class ClientBackend(ThreadClient):
 
             # Each short name is configured on the channel itself
             all_names = [ch.short_name for sv in self.servers.values()
-                                           for ch in sv.channels.values()]
+                         for ch in sv.channels.values()]
             count_names = collections.Counter(all_names)
             for name in count_names:
-                err_msg = "Short name '{}' is not unique".format(name)
-                assert count_names[name] == 1, err_msg
+                err = "Short name '{}' is not unique".format(name)
+                assert count_names[name] == 1, err
 
             # Check that all names in layout map to actual channels
-            for shortname in flattened:
-                err_msg = "Can't map short name '{}' to a full name".format(shortname)
-                assert shortname in all_names, err_msg
+            for name in flattened:
+                err = "Can't map short name '{}' to a full name".format(name)
+                assert name in all_names, err
 
         except AssertionError as e:
             self._log.error("Error in config file: {}".format(e))

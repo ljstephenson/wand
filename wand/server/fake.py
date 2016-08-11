@@ -5,10 +5,11 @@ import numpy.random as random
 from wand.common import with_log
 
 __all__ = [
-    'FakeOSATask',
-    'FakeWavemeterTask',
+    'OSATask',
+    'WavemeterTask',
     'set_frequency',
 ]
+
 
 _FREQUENCY = 10
 def set_frequency(frequency):

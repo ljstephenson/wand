@@ -2,7 +2,6 @@
 Client specific extension of channel class
 """
 import collections
-
 import wand.common as common
 
 
@@ -16,14 +15,15 @@ class Channel(common.JSONConfigurable):
     the server, which echoes the change to all listening clients.
     """
     _attrs = collections.OrderedDict([
-                ('name', None),
-                ('short_name', None),
-                ('reference', None),
-                ('exposure', None),
-                ('number', None),
-                ('array', None),
-                ('blue', None),
-            ])
+        ('name', None),
+        ('short_name', None),
+        ('reference', None),
+        ('exposure', None),
+        ('number', None),
+        ('array', None),
+        ('blue', None),
+    ])
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.client = None

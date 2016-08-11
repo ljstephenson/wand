@@ -1,10 +1,9 @@
 """
 Server for laser diagnostics operation.
 """
-import itertools
 import asyncio
 import collections
-import weakref
+import itertools
 import logging
 from influxdb import InfluxDBClient
 

@@ -1,9 +1,8 @@
 """
 Wavemeter interface
 """
-import ctypes
 import asyncio
-import enum
+import ctypes
 from wand.common import with_log
 from wand.server.wlmconstants import *
 

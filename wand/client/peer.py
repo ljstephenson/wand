@@ -1,7 +1,6 @@
 """
 Client peer method
 """
-import collections
 import ctypes
 import json
 import jsonrpc
@@ -171,7 +170,7 @@ class RPCPeer(JSONConfigurable):
 
     def _result_handler(self, result):
         """Default to logging successes"""
-        #self._log.debug("RPC returned:{}".format(result))
+        # self._log.debug("RPC returned:{}".format(result))
         pass
 
     @property
@@ -192,6 +191,7 @@ class RPCPeer(JSONConfigurable):
 class Decoder(QtCore.QObject):
     """Worker to decode data into meaningful JSON objects"""
     jsonReady = QtCore.pyqtSignal(dict)
+
     def __init__(self):
         super().__init__()
         self.buf = ""
@@ -248,6 +248,7 @@ class RPCClient(RPCPeer):
 class RPCConnection(QtCore.QObject, BaseConnection):
     """Represents a connection between one RPC peer and another"""
     msgReady = QtCore.pyqtSignal(str)
+
     def __init__(self, handler, sock):
         # NB MRO means this super call is for the QtCore.QObject
         super().__init__()
@@ -278,7 +279,6 @@ class RPCConnection(QtCore.QObject, BaseConnection):
     def get_listen(self):
         def listen():
             """Called when data is available"""
-            obj = None
             data = self.sock.read(self.sock.bytesAvailable())
             self.msgReady.emit(data.decode())
         return listen
@@ -317,12 +317,14 @@ class ThreadClient(RPCPeer):
         for c in s.channels:
             self.conns_by_c[c] = conn
 
+
 @with_log
 class ThreadConnection(QtCore.QObject, BaseConnection):
     """Wraps connection thread to abstract sending"""
     # Stays in the main thread since it calls the handler
     disconnected = QtCore.pyqtSignal()
     connected = QtCore.pyqtSignal()
+
     def __init__(self, handler, addr):
         super().__init__()
         self.handler = handler

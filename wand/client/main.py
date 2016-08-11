@@ -1,17 +1,19 @@
-import sys
 import argparse
-from . import QtGui
 import logging
 import pkg_resources
 
+from . import QtGui
+
 import wand.client.clientgui as clientgui
 import wand.common as common
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("filename", help="JSON configuration file")
     common.add_verbosity_args(parser)
     return parser.parse_args()
+
 
 def main():
     args = parse_args()
@@ -34,6 +36,7 @@ def main():
         raise
     finally:
         c.shutdown()
+
 
 def set_icon(app):
     fname = pkg_resources.resource_filename("wand", "resources/wand.svg")

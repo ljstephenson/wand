@@ -12,16 +12,17 @@ class Server(common.JSONConfigurable):
     Client implementation of server
     """
     _attrs = collections.OrderedDict([
-                ('name', None),
-                ('host', None),
-                ('port', None),
-                ('channels', Channel),
-                ('all_channels', Channel),
-                ('locked', None),
-                ('pause', None),
-                ('fast', None),
-                ('uptime', None)
-            ])
+        ('name', None),
+        ('host', None),
+        ('port', None),
+        ('channels', Channel),
+        ('all_channels', Channel),
+        ('locked', None),
+        ('pause', None),
+        ('fast', None),
+        ('uptime', None)
+    ])
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 

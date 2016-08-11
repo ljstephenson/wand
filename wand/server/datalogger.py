@@ -2,6 +2,7 @@ import os
 import time
 import json
 
+
 class OsaLogger(object):
     def __init__(self):
         if os.name == "nt":

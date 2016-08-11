@@ -24,13 +24,14 @@ class Channel(common.JSONConfigurable):
     - blue: true if blue laser - dictates inputs to use on DAQ card
     """
     _attrs = collections.OrderedDict([
-                ('name', None),
-                ('reference', None),
-                ('exposure', None),
-                ('number', None),
-                ('array', None),
-                ('blue', None),
-            ])
+        ('name', None),
+        ('reference', None),
+        ('exposure', None),
+        ('number', None),
+        ('array', None),
+        ('blue', None),
+    ])
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 

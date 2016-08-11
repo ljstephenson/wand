@@ -248,10 +248,9 @@ class ClientBackend(ThreadClient):
         # Versions consist of 3 numbers separated by dots, so split on
         # the dots for Major/Minor/Patch number
         vtuple = version.split('.')
-        __version__ = "2.0.0" # HACK
         internal = __version__.split('.')
         msg = "{{}} version mismatch: client {}, {} {}".format(__version__,
-                                                               owner, version)
+                                                             owner, version)
 
         assert vtuple[0] == internal[0], msg.format("Major")
 

@@ -1,15 +1,15 @@
 """
 Common classes and methods
 """
+import asyncio
 import collections
 import ctypes
-import asyncio
 import json
 import jsonrpc
 import logging
 import logging.handlers
-import time
 import os
+import time
 
 __all__ = [
     'with_log',

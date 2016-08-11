@@ -1,13 +1,14 @@
 """
 Client for laser diagnostic operations
 """
-import asyncio
 import collections
-import weakref
+import functools
 import numpy as np
 import sys
-import random
 import time
+import weakref
+
+from . import QtGui
 
 import wand.common as common
 from wand.client.server import Server
@@ -19,6 +20,7 @@ from wand import __version__
 class ClientBackend(ThreadClient):
     _attrs = collections.OrderedDict([
                 ('name', None),
+                ('version', None),
                 ('servers', Server),
                 ('layout', None),
             ])
@@ -41,6 +43,18 @@ class ClientBackend(ThreadClient):
                 self.channels[c.name] = c
                 self.name_map[c.name] = c.short_name
                 self.short_names[c.short_name] = c.name
+
+    def startup(self):
+        self.running = True
+        for s in self.servers:
+            self.server_connect(s)
+            self.request_version(s)
+        self._log.info("Ready")
+
+    def shutdown(self):
+        self.running = False
+        self.close_connections()
+        self._log.info("Shutdown finished")
 
     # -------------------------------------------------------------------------
     # RPC methods implemented by this class
@@ -122,6 +136,8 @@ class ClientBackend(ThreadClient):
         self._log.log(lvl, "{} says: {}".format(server, msg))
 
     def rpc_version(self):
+        # Note that this is the running version, not the config version.
+        # The patch number in config is assumed not to matter.
         return __version__
 
     # -------------------------------------------------------------------------
@@ -187,13 +203,10 @@ class ClientBackend(ThreadClient):
 
     def request_version(self, server):
         def checker(version):
-            server = version.split('.')
-            client = __version__.split('.')
-            msg = "{} version mismatch: server {}, client {}".format("{}", version, __version__)
-            if server[0] != client[0]:
-                self.fatal(msg.format("Major"))
-            elif server[1] != client[1]:
-                self._log.warning("{}. Some features may not work".format(msg.format("Minor")))
+            try:
+                self.check_version(version, "server")
+            except AssertionError as e:
+                self.fatal(str(e))
         method = "version"
         self._server_request(server, method, cb=checker)
 
@@ -216,12 +229,37 @@ class ClientBackend(ThreadClient):
     # Misc
     #
     def fatal(self, reason):
+        """Force quits the application, logging the error message"""
         self._log.critical(reason)
+        QtGui.QApplication.instance().quit()
 
     def get_channel_by_short_name(self, short_name):
         """Fetch the channel object using its short name"""
         name = self.short_names[short_name]
         return self.channels[name]
+
+    def check_version(self, version, owner):
+        """
+        Checks a version string against the internal running version.
+
+        Raise an assertion error on major mismatch, return False on a
+        minor mismatch and True otherwise.
+        """
+        # Versions consist of 3 numbers separated by dots, so split on
+        # the dots for Major/Minor/Patch number
+        vtuple = version.split('.')
+        internal = __version__.split('.')
+        msg = "{{}} version mismatch: client {}, {} {}".format(__version__,
+                                                             owner, version)
+
+        assert vtuple[0] == internal[0], msg.format("Major")
+
+        if vtuple[1] != internal[1]:
+            self._log.warning(msg.format("Minor"))
+            return False
+        else:
+            self._log.debug("Client and {} versions match".format(owner))
+            return True
 
     # -------------------------------------------------------------------------
     # Config sanitiser
@@ -229,10 +267,26 @@ class ClientBackend(ThreadClient):
     def check_config(self):
         """Check the current config for errors and flag them"""
         try:
-            flat_layout = [shortname for row in self.layout for shortname in row]
-            for shortname in flat_layout:
-                all_names = [ch.short_name for sv in self.servers.values() for ch in sv.channels.values()]
-                assert shortname in all_names, "{} not found in any server list".format(name)
+            # Raises AssertionError on major mismatch
+            self.check_version(self.version, "config")
+
+            # flatten the layout, which is a list of lists, to have all the
+            # short names we expect to see configured
+            flattened = [shortname for row in self.layout for shortname in row]
+
+            # Each short name is configured on the channel itself
+            all_names = [ch.short_name for sv in self.servers.values()
+                                           for ch in sv.channels.values()]
+            count_names = collections.Counter(all_names)
+            for name in count_names:
+                err_msg = "Short name '{}' is not unique".format(name)
+                assert count_names[name] == 1, err_msg
+
+            # Check that all names in layout map to actual channels
+            for shortname in flattened:
+                err_msg = "Can't map short name '{}' to a full name".format(shortname)
+                assert shortname in all_names, err_msg
+
         except AssertionError as e:
             self._log.error("Error in config file: {}".format(e))
             raise

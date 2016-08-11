@@ -7,6 +7,7 @@ import weakref
 import numpy as np
 import sys
 import random
+import time
 
 import wand.common as common
 from wand.client.server import Server
@@ -108,6 +109,9 @@ class ClientBackend(ThreadClient):
     def rpc_ping(self, server):
         # self._log.debug("Ping from {}".format(server))
         pass
+
+    def rpc_timestamp(self, server, timestamp):
+        self._log.debug("{} timestamp:{}".format(server, time.ctime(timestamp)))
 
     def rpc_list_server_channels(self, server):
         """Return the configured list of channels under a server"""

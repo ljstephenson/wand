@@ -1,9 +1,9 @@
-from . import QtGui
+import collections
+import numpy as np
 import pyqtgraph as pg
 import pyqtgraph.dockarea as dock
-import numpy as np
-import functools
-import collections
+
+from . import QtGui
 
 from wand.client.client import ClientBackend
 from wand.client.channel import Channel

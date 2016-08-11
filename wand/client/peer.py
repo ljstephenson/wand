@@ -221,17 +221,6 @@ class Decoder(QtCore.QObject):
 @with_log
 class RPCClient(RPCPeer):
     """Handles making the connections as well"""
-    def startup(self):
-        self.running = True
-        for s in self.servers:
-            self.server_connect(s)
-        self._log.info("Ready")
-
-    def shutdown(self):
-        self.running = False
-        self.close_connections()
-        self._log.info("Shutdown finished")
-
     def server_connect(self, server):
         s = self.servers.get(server)
         sock = QtNetwork.QTcpSocket()
@@ -302,17 +291,6 @@ class RPCConnection(QtCore.QObject, BaseConnection):
 #
 @with_log
 class ThreadClient(RPCPeer):
-    def startup(self):
-        self.running = True
-        for s in self.servers:
-            self.server_connect(s)
-        self._log.info("Ready")
-
-    def shutdown(self):
-        self.running = False
-        self.close_connections()
-        self._log.info("Shutdown finished")
-
     def server_connect(self, server):
         s = self.servers.get(server)
 

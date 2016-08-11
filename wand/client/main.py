@@ -29,19 +29,11 @@ def main():
     try:
         c.show()
         app.exec_()
-    except KeyboardInterrupt as e:  
-        log.info("Quitting due to user keyboard interrupt")
-    except SystemExit as e:
-        log.exception("SystemExit occurred in main loop")
-        raise
     except Exception as e:
         log.exception("Exception occurred in main loop")
         raise
     finally:
         c.shutdown()
-
-    sys.exit()
-
 
 def set_icon(app):
     fname = pkg_resources.resource_filename("wand", "resources/wand.svg")

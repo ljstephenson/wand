@@ -39,15 +39,16 @@ class Server(common.JSONRPCPeer):
     # These will all be initialised during __init__ in the call to 
     # super.__init__ because JSONRPCPeer is a JSONConfigurable
     _attrs = collections.OrderedDict([
-                ('name', None),
-                ('host', None),
-                ('port', None),
-                ('influxdb', None),
-                ('switcher', None),
-                ('osa', None),
-                ('mode', None),
-                ('channels', Channel),
-            ])
+        ('name', None),
+        ('version', None),
+        ('host', None),
+        ('port', None),
+        ('influxdb', None),
+        ('switcher', None),
+        ('osa', None),
+        ('mode', None),
+        ('channels', Channel),
+    ])
     switch_interval = 10
     data_frequency = {'fast':10, 'slow':1}
     log_interval = 5

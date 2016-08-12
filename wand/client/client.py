@@ -33,15 +33,15 @@ class ClientBackend(ThreadClient):
         self.conns_by_c = weakref.WeakValueDictionary()
         self.channels = collections.OrderedDict()
         self.name_map = collections.OrderedDict()
-        self.short_names = collections.OrderedDict()
+        self.aliases = collections.OrderedDict()
 
         for s in self.servers.values():
             s.client = self
             for c in s.channels.values():
                 c.client = self
                 self.channels[c.name] = c
-                self.name_map[c.name] = c.short_name
-                self.short_names[c.short_name] = c.name
+                self.name_map[c.name] = c.alias
+                self.aliases[c.alias] = c.name
 
     def startup(self):
         self.running = True
@@ -233,9 +233,9 @@ class ClientBackend(ThreadClient):
         self._log.critical(reason)
         QtGui.QApplication.instance().quit()
 
-    def get_channel_by_short_name(self, short_name):
-        """Fetch the channel object using its short name"""
-        name = self.short_names[short_name]
+    def get_channel_by_alias(self, alias):
+        """Fetch the channel object using its alias"""
+        name = self.aliases[alias]
         return self.channels[name]
 
     def check_version(self, version, owner):
@@ -271,21 +271,21 @@ class ClientBackend(ThreadClient):
             self.check_version(self.version, "config")
 
             # flatten the layout, which is a list of lists, to have all the
-            # short names we expect to see configured
-            flattened = [shortname for row in self.layout for shortname in row]
+            # aliases we expect to see configured
+            flattened = [alias for row in self.layout for alias in row]
 
-            # Each short name is configured on the channel itself
-            all_names = [ch.short_name for sv in self.servers.values()
+            # Each alias is configured on the channel itself
+            all_names = [ch.alias for sv in self.servers.values()
                          for ch in sv.channels.values()]
             count_names = collections.Counter(all_names)
             for name in count_names:
-                err = "Short name '{}' is not unique".format(name)
+                err = "Alias '{}' is not unique".format(name)
                 assert count_names[name] == 1, err
 
             # Check that all names in layout map to actual channels
-            for name in flattened:
-                err = "Can't map short name '{}' to a full name".format(name)
-                assert name in all_names, err
+            for alias in flattened:
+                err = "Can't map alias '{}' to a full name".format(alias)
+                assert alias in all_names, err
 
         except AssertionError as e:
             self._log.error("Error in config file: {}".format(e))

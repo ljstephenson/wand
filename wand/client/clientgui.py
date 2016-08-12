@@ -32,8 +32,8 @@ class GUIChannel(Channel):
         self._detuning.setText("-", size="64pt")
         self._frequency = pg.LabelItem("")
         self._frequency.setText("-", size="12pt")
-        self._short_name = pg.LabelItem("")
-        self._short_name.setText("Name", size="32pt")
+        self._alias = pg.LabelItem("")
+        self._alias.setText("Name", size="32pt")
 
         self._osa = pg.PlotItem()
         self._osa.hideAxis('bottom')
@@ -59,7 +59,7 @@ class GUIChannel(Channel):
         self._plot.nextRow()
         self._plot.addItem(self._detuning, colspan=3)
         self._plot.nextRow()
-        self._plot.addItem(self._short_name)
+        self._plot.addItem(self._alias)
         self._plot.addItem(self._frequency, colspan=2)
 
         self._dock.addWidget(self._plot, colspan=7)
@@ -130,15 +130,15 @@ class GUIChannel(Channel):
     # Properties
     #
     @property
-    def short_name(self):
+    def alias(self):
         return self._n
 
-    @short_name.setter
-    def short_name(self, val):
+    @alias.setter
+    def alias(self, val):
         if val is None:
             val = ""
         self._n = val
-        self._short_name.setText(val, color=self.color)
+        self._alias.setText(val, color=self.color)
 
     @property
     def reference(self):
@@ -213,7 +213,7 @@ class GUIChannel(Channel):
     @blue.setter
     def blue(self, val):
         self._blue = val
-        self._short_name.setText(self.short_name, color=self.color)
+        self._alias.setText(self.alias, color=self.color)
         # If the colour isn't grey then we can enable the buttons
         self._enable_all(self.color != "7c7c7c")
 
@@ -308,7 +308,7 @@ class ClientGUI(ClientBackend):
             prev = None
             pos = 'bottom'
             for channel in row:
-                c = self.get_channel_by_short_name(channel)
+                c = self.get_channel_by_alias(channel)
                 d = c.dock
                 self.area.addDock(d, position=pos, relativeTo=prev)
                 pos = 'right'

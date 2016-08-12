@@ -16,7 +16,7 @@ class Channel(common.JSONConfigurable):
     """
     _attrs = collections.OrderedDict([
         ('name', None),
-        ('short_name', None),
+        ('alias', None),
         ('reference', None),
         ('exposure', None),
         ('number', None),

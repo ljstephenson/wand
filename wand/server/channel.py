@@ -30,6 +30,7 @@ class Channel(common.JSONConfigurable):
         ('number', None),
         ('array', None),
         ('blue', None),
+        ('active', None),
     ])
 
     def __init__(self, *args, **kwargs):

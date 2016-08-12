@@ -67,7 +67,10 @@ class Server(common.JSONRPCPeer):
             self.influx_cl = InfluxDBClient(**self.influxdb)
 
         # Generator for cycling through configured channels infinitely
-        self.ch_gen = itertools.cycle(self.channels)
+        active = [name for name, ch in self.channels.items() if ch.active]
+        print(active)
+        self.ch_gen = itertools.cycle(
+            name for name, ch in self.channels.items() if ch.active)
 
         self.data_q = asyncio.Queue()
 

@@ -66,9 +66,8 @@ pip install -e <source-directory>
 
 Please develop on a branch other than master (e.g. dev) so that you don't break
 things for other people trying to install it! There's a simulation mode for the
-server that doesn't access either the wavemeter or the acquisition card (and
-doesn't require that the wavemeter dll is even installed) to use while
-developing, but produces data that is similar to real data.
+server that doesn't require either the wavemeter or the acquisition card to be
+installed while developing, but produces data that is similar to real data.
 
 ## Testing
 

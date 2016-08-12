@@ -1,36 +1,27 @@
 {
     "name":"TestClient3",
+    "version":"2.0.0",
     "servers":{
         "TestServer1":{
             "host":"localhost",
             "port":8888,
-            "channels":[
-                "T1-393",
-                "T1-397",
-                "T1-850",
-                "T1-854",
-                "T1-866",
-                "T1-RaSlv",
-                "T1-RaMst"
-                ]
+            "channels":{
+                "T1-393":{"alias":"393"},
+                "T1-397":{"alias":"397"},
+                "T1-850":{"alias":"850"},
+                "T1-854":{"alias":"854"},
+                "T1-866":{"alias":"866"},
+                "T1-RaSlv":{"alias":"RaSlv"},
+                "T1-RaMst":{"alias":"RaMst"}
+                }
             },
         "TestServer2":{
             "host":"localhost",
             "port":8889,
-            "channels":[
-                "T2-423"
-                ]
+            "channels":{
+                "T2-423":{"alias":"423"}
+                }
             }
-        },
-    "short_names":{
-            "393":"T1-393",
-            "397":"T1-397",
-            "850":"T1-850",
-            "854":"T1-854",
-            "866":"T1-866",
-            "RaSlv":"T1-RaSlv",
-            "RaMst":"T1-RaMst",
-            "423":"T2-423"
         },
     "layout":[
             ["397", "393", "RaSlv", "RaMst"],

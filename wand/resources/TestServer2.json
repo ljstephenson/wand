@@ -1,5 +1,6 @@
 {
     "name":"TestServer2",
+    "version":"2.0.0",
     "host":"localhost",
     "port":8889,
     "influxdb":{
@@ -37,7 +38,8 @@
             "exposure":21,
             "number":1,
             "array":1,
-            "blue":true
+            "blue":true,
+            "active":true
         },
         "T2-397":{
             "name":"T2-397",
@@ -45,7 +47,8 @@
             "exposure":10,
             "number":2,
             "array":1,
-            "blue":true
+            "blue":true,
+            "active":true
         }
     }
 }

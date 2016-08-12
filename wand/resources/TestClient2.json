@@ -1,24 +1,21 @@
 {
     "name":"TestClient2",
+    "version":"2.0.0",
     "servers":{
         "TestServer1":{
             "host":"localhost",
             "port":8888,
-            "channels":[
-                "T1-393"
-                ]
+            "channels":{
+                "T1-393":{"alias":"393"}
+                }
             },
         "TestServer2":{
             "host":"localhost",
             "port":8889,
-            "channels":[
-                "T2-423"
-                ]
+            "channels":{
+                "T2-423":{"alias":"423"}
+                }
             }
-        },
-    "short_names":{
-            "393":"T1-393",
-            "423":"T2-423"
         },
     "layout":[
             ["393", "423"]

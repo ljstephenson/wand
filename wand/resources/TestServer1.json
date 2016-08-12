@@ -1,5 +1,6 @@
 {
     "name":"TestServer1",
+    "version":"2.0.0",
     "host":"localhost",
     "port":8888,
     "influxdb":{
@@ -33,7 +34,8 @@
             "exposure":10,
             "number":1,
             "array":1,
-            "blue":true
+            "blue":true,
+            "active":true
         },
         "T1-393":{
             "name":"T1-393",
@@ -41,7 +43,8 @@
             "exposure":20,
             "number":2,
             "array":1,
-            "blue":true
+            "blue":true,
+            "active":true
         },
         "T1-RaSlv":{
             "name":"T1-RaSlv",
@@ -49,7 +52,8 @@
             "exposure":10,
             "number":3,
             "array":1,
-            "blue":false
+            "blue":false,
+            "active":true
         },
         "T1-RaMst":{
             "name":"T1-RaMst",
@@ -57,7 +61,8 @@
             "exposure":5,
             "number":4,
             "array":1,
-            "blue":false
+            "blue":false,
+            "active":true
         },
         "T1-866":{
             "name":"T1-866",
@@ -65,7 +70,8 @@
             "exposure":1,
             "number":5,
             "array":1,
-            "blue":false
+            "blue":false,
+            "active":true
         },
         "T1-854":{
             "name":"T1-854",
@@ -73,7 +79,8 @@
             "exposure":30,
             "number":7,
             "array":1,
-            "blue":false
+            "blue":false,
+            "active":true
         },
         "T1-850":{
             "name":"T1-850",
@@ -81,7 +88,8 @@
             "exposure":10,
             "number":8,
             "array":1,
-            "blue":false
+            "blue":false,
+            "active":true
         }
     }
 }

@@ -11,6 +11,7 @@ import wand.common as common
 from wand.server.channel import Channel
 from wand import __version__
 
+
 def import_modules(simulate):
     """Some modules should not be imported if running as simulation"""
     global switcher, osa, wavemeter
@@ -20,12 +21,9 @@ def import_modules(simulate):
         wavemeter = wand.server.fake
         switcher = wand.server.fake
     else:
-        import wand.server.osa
-        import wand.server.wavemeter
-        import wand.server.switcher
-        osa = wand.server.osa
-        wavemeter = wand.server.wavemeter
-        switcher = wand.server.switcher
+        import wand.server.osa as osa
+        import wand.server.wavemeter as wavemeter
+        import wand.server.switcher as switcher
 
 
 @common.with_log
@@ -52,7 +50,7 @@ class Server(common.JSONRPCPeer):
             ])
     switch_interval = 10
     data_frequency = {'fast':10, 'slow':1}
-    log_interval = {'wavemeter':5, 'osa':600}
+    log_interval = 5
 
     def __init__(self, simulate=False, **kwargs):
         super().__init__(**kwargs)
@@ -87,7 +85,7 @@ class Server(common.JSONRPCPeer):
         # Store last logging time of wavelength and osa trace
         self.last_log = collections.OrderedDict()
         for c in self.channels:
-            self.last_log[c] = {"wavemeter":None, "osa":None}
+            self.last_log[c] = None
 
     def get_switcher(self):
         """Factory to set the 'switch' method to do the right thing"""
@@ -463,23 +461,15 @@ class Server(common.JSONRPCPeer):
     #
     def log_data(self, data):
         """Choose whether or not to log a data point based on last log"""
+        # Only real wavemeter data should ever be logged
+        if self.simulate or data['source'] != "wavemeter":
+            return
         channel = data['channel']
-        source = data['source']
         now = self.loop.time()
-        last = self.last_log[channel][source]
-        if last is None or now - last > self.log_interval[source]:
-            self.last_log[channel][source] = now
-            if not self.simulate:
-                if source == 'osa':
-                    self.osa_log(data, now)
-                else:
-                    self.send_influx(data)
-
-    def osa_log(self, data, time):
-        """Save the osa data"""
-        # Don't actually do anything for now
-        # self._log.debug("Logging data for {} from osa".format(data['channel']))
-        pass
+        last = self.last_log[channel]
+        if last is None or now - last > self.log_interval:
+            self.last_log[channel] = now
+            self.send_influx(data)
 
     # -------------------------------------------------------------------------
     # InfluxDB

@@ -1,15 +1,14 @@
-from . import QtGui
+import collections
 import pyqtgraph as pg
 import pyqtgraph.dockarea as dock
-import numpy as np
-import functools
-import collections
+
+from . import QtGui
 
 from wand.client.client import ClientBackend
 from wand.client.channel import Channel
+from wand.client.server import Server
 from wand.common import with_log
 
-import time
 
 @with_log
 class GUIChannel(Channel):
@@ -82,7 +81,8 @@ class GUIChannel(Channel):
 
     def _enable_all(self, enable):
         """Enable or disable all editable boxes"""
-        for widget in [self._reference, self._exposure, self._lock, self._save]:
+        for widget in [self._reference, self._exposure,
+                       self._lock, self._save]:
             widget.setEnabled(enable)
 
     # -------------------------------------------------------------------------
@@ -94,7 +94,6 @@ class GUIChannel(Channel):
         self._reference.valueChanged.connect(self.ref)
         self._exposure.valueChanged.connect(self.exp)
 
-
     # Note that the value changed callbacks check that the new value is
     # different from the stored value - this mean that only user inputs
     # trigger communications with the server.
@@ -102,10 +101,13 @@ class GUIChannel(Channel):
     # would trigger a new notification with the new value, which would loop
     def ref(self, val):
         if val != self._ref:
-            self.client.request_configure_channel(self.name, cfg={'reference':val})
+            self.client.request_configure_channel(self.name,
+                                                  cfg={'reference':val})
+
     def exp(self, val):
         if val != self._exp:
-            self.client.request_configure_channel(self.name, cfg={'exposure':val})
+            self.client.request_configure_channel(self.name,
+                                                  cfg={'exposure':val})
 
     def save(self):
         self.client.request_save_channel_settings(self.name)
@@ -143,7 +145,7 @@ class GUIChannel(Channel):
         return self._ref
 
     @reference.setter
-    def reference(self, val):   
+    def reference(self, val):
         if val is None:
             val = 0
         self._ref = val
@@ -189,7 +191,8 @@ class GUIChannel(Channel):
 
         if not error:
             # Detuning in MHz not THz
-            self._detuning.setText("{:.1f}".format(self.detuning*1e6), color="ffffff")
+            self._detuning.setText("{:.1f}".format(self.detuning*1e6),
+                                   color="ffffff")
         else:
             self._detuning.setText("{}".format(error), color="ff9900")
 
@@ -264,7 +267,8 @@ class GUIServer(QtGui.QToolBar):
     def set_paused(self, paused):
         # paused and isChecked() *must* be proper booleans for XOR to work
         if self._pause.isChecked() ^ paused:
-            self._log.debug("{}: toggled pause to {}".format(self.name, paused))
+            self._log.debug("{}: toggled pause to {}".format(self.name,
+                                                             paused))
             self._pause.toggle()
 
     def set_fast(self, fast):
@@ -273,24 +277,24 @@ class GUIServer(QtGui.QToolBar):
             self._fast.toggle()
 
 
+class GUIServerLite(Server):
+    """docstring for GUIServer"""
+    def __init__(self, *args, **kwargs):
+        self._attrs.update({"channels":GUIChannel})
+        super().__init__(*args, **kwargs)
+
+
 @with_log
 class ClientGUI(ClientBackend):
-    # List of configurable attributes (maintains order when dumping config)
-    # These will all be initialised during __init__ in the call to 
-    # super.__init__ because JSONRPCPeer is a JSONConfigurable
-    _attrs = collections.OrderedDict([
-                ('name', None),
-                ('servers', None),
-                ('short_names', None),
-                ('layout', None),
-            ])
     def __init__(self, *args, **kwargs):
+        self._attrs.update({"servers":GUIServerLite})
+
         self.win = QtGui.QMainWindow()
         self.area = dock.DockArea()
         self.win.setCentralWidget(self.area)
         self.win.setWindowTitle("Super-duper Python Wavemeter Viewer!")
 
-        super().__init__(GUIChannel, *args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         self.place_channels()
         self.create_toolbars()
@@ -313,7 +317,7 @@ class ClientGUI(ClientBackend):
     def create_toolbars(self):
         """Create and place server toolbars"""
         self.toolbars = collections.OrderedDict()
-        for s in self.servers:  
+        for s in self.servers:
             self.toolbars[s] = GUIServer(self, s)
 
     def place_toolbars(self):

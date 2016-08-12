@@ -1,19 +1,29 @@
 """
 Server for laser diagnostics operation.
 """
-import itertools
 import asyncio
 import collections
-import weakref
+import itertools
 import logging
 from influxdb import InfluxDBClient
 
-import wand.server.osa as osa
-import wand.server.wavemeter as wavemeter
-import wand.server.switcher as switcher
-import wand.server.fake as fake
 import wand.common as common
 from wand.server.channel import Channel
+from wand import __version__
+
+
+def import_modules(simulate):
+    """Some modules should not be imported if running as simulation"""
+    global switcher, osa, wavemeter
+    if simulate:
+        import wand.server.fake
+        osa = wand.server.fake
+        wavemeter = wand.server.fake
+        switcher = wand.server.fake
+    else:
+        import wand.server.osa as osa
+        import wand.server.wavemeter as wavemeter
+        import wand.server.switcher as switcher
 
 
 @common.with_log
@@ -29,22 +39,24 @@ class Server(common.JSONRPCPeer):
     # These will all be initialised during __init__ in the call to 
     # super.__init__ because JSONRPCPeer is a JSONConfigurable
     _attrs = collections.OrderedDict([
-                ('name', None),
-                ('host', None),
-                ('port', None),
-                ('influxdb', None),
-                ('switcher', None),
-                ('osa', None),
-                ('mode', None),
-                ('channels', Channel),
-            ])
+        ('name', None),
+        ('version', None),
+        ('host', None),
+        ('port', None),
+        ('influxdb', None),
+        ('switcher', None),
+        ('osa', None),
+        ('mode', None),
+        ('channels', Channel),
+    ])
     switch_interval = 10
     data_frequency = {'fast':10, 'slow':1}
-    log_interval = {'wavemeter':5, 'osa':600}
+    log_interval = 5
 
     def __init__(self, simulate=False, **kwargs):
         super().__init__(**kwargs)
         self.check_config()
+        import_modules(simulate)
         self.simulate = simulate
         self.get_switcher()
         self.configure_osa()
@@ -74,7 +86,7 @@ class Server(common.JSONRPCPeer):
         # Store last logging time of wavelength and osa trace
         self.last_log = collections.OrderedDict()
         for c in self.channels:
-            self.last_log[c] = {"wavemeter":None, "osa":None}
+            self.last_log[c] = None
 
     def get_switcher(self):
         """Factory to set the 'switch' method to do the right thing"""
@@ -159,7 +171,8 @@ class Server(common.JSONRPCPeer):
                 self.pause = False
                 self.fast = True
                 self.setup_data_rate()
-                self.loop.call_soon(self.select)
+                if not self._next:
+                    self._next = self.loop.call_soon(self.select)
         future.add_done_callback(client_disconnected)
 
     # -------------------------------------------------------------------------
@@ -191,11 +204,8 @@ class Server(common.JSONRPCPeer):
 
         self._log.info("Setting to {} mode".format(speed))
         f = self.data_frequency[speed]
-        if self.simulate:
-            fake.set_frequency(f)
-        else:
-            osa.set_frequency(f)
-            wavemeter.set_frequency(f)
+        osa.set_frequency(f)
+        wavemeter.set_frequency(f)
 
     # -------------------------------------------------------------------------
     # RPC methods
@@ -216,7 +226,7 @@ class Server(common.JSONRPCPeer):
         if not self.pause:
             if self._next:
                 self.loop.call_soon(self._next.cancel)
-            self.loop.call_soon(self.select, channel)
+            self._next = self.loop.call_soon(self.select, channel)
 
 
     def rpc_unlock(self):
@@ -240,9 +250,9 @@ class Server(common.JSONRPCPeer):
                 # Resume
                 self._log.info("Unpausing")
                 if self.locked:
-                    self.loop.call_soon(self.select, self.locked)
+                    self._next = self.loop.call_soon(self.select, self.locked)
                 else:
-                    self.loop.call_soon(self.select)
+                    self._next = self.loop.call_soon(self.select)
             self.pause = pause
             self.loop.call_soon(self.notify_paused)
 
@@ -291,6 +301,8 @@ class Server(common.JSONRPCPeer):
         self._log.debug("ECHO '{}'".format(s))
         return s
 
+    def rpc_version(self):
+        return __version__
 
     # -------------------------------------------------------------------------
     # Requests to clients
@@ -427,16 +439,10 @@ class Server(common.JSONRPCPeer):
     #
     def new_tasks(self, channel):
         tasks = {}
-        if self.simulate:
-            if 'osa' in self.mode:
-                tasks['osa'] = fake.OSATask
-            if 'wavemeter' in self.mode:
-                tasks['wavemeter'] = fake.WavemeterTask
-        else:
-            if 'osa' in self.mode:
-                tasks['osa'] = osa.OSATask
-            if 'wavemeter' in self.mode:
-                tasks['wavemeter'] = wavemeter.WavemeterTask
+        if 'osa' in self.mode:
+            tasks['osa'] = osa.OSATask
+        if 'wavemeter' in self.mode:
+            tasks['wavemeter'] = wavemeter.WavemeterTask
 
         for name, t in tasks.items():
             self.tasks[name] = t(self.loop, self.data_q, channel)
@@ -456,23 +462,15 @@ class Server(common.JSONRPCPeer):
     #
     def log_data(self, data):
         """Choose whether or not to log a data point based on last log"""
+        # Only real wavemeter data should ever be logged
+        if self.simulate or data['source'] != "wavemeter":
+            return
         channel = data['channel']
-        source = data['source']
         now = self.loop.time()
-        last = self.last_log[channel][source]
-        if last is None or now - last > self.log_interval[source]:
-            self.last_log[channel][source] = now
-            if not self.simulate:
-                if source == 'osa':
-                    self.osa_log(data, now)
-                else:
-                    self.send_influx(data)
-
-    def osa_log(self, data, time):
-        """Save the osa data"""
-        # Don't actually do anything for now
-        # self._log.debug("Logging data for {} from osa".format(data['channel']))
-        pass
+        last = self.last_log[channel]
+        if last is None or now - last > self.log_interval:
+            self.last_log[channel] = now
+            self.send_influx(data)
 
     # -------------------------------------------------------------------------
     # InfluxDB
@@ -514,11 +512,40 @@ class Server(common.JSONRPCPeer):
         ]
 
     # -------------------------------------------------------------------------
+    # Misc
+    #
+    def check_version(self, version, owner):
+        """
+        Checks a version string against the internal running version.
+
+        Raise an assertion error on major mismatch, return False on a
+        minor mismatch and True otherwise.
+        """
+        # Versions consist of 3 numbers separated by dots, so split on
+        # the dots for Major/Minor/Patch number
+        vtuple = version.split('.')
+        internal = __version__.split('.')
+        msg = "{{}} version mismatch: server {}, {} {}".format(__version__,
+                                                               owner, version)
+
+        assert vtuple[0] == internal[0], msg.format("Major")
+
+        if vtuple[1] != internal[1]:
+            self._log.warning(msg.format("Minor"))
+            return False
+        else:
+            self._log.debug("Server and {} versions match".format(owner))
+            return True
+
+    # -------------------------------------------------------------------------
     # Config sanitiser
     #
     def check_config(self):
         """Check the current config for errors and flag them"""
         try:
+            # Raises AssertionError on major mismatch
+            self.check_version(self.version, "config")
+
             numbers = []
             for name, channel in self.channels.items():
                 assert name == channel.name, "{}: Name doesn't match key".format(name)

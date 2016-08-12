@@ -1,19 +1,19 @@
-import sys
 import argparse
-from . import QtGui
-from quamash import QEventLoop
-import asyncio
 import logging
 import pkg_resources
 
+from . import QtGui
+
 import wand.client.clientgui as clientgui
 import wand.common as common
+
 
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("filename", help="JSON configuration file")
     common.add_verbosity_args(parser)
     return parser.parse_args()
+
 
 def main():
     args = parse_args()
@@ -22,8 +22,6 @@ def main():
     logging.getLogger('wand').setLevel(level)
 
     app = QtGui.QApplication([])
-    loop = QEventLoop(app)
-    asyncio.set_event_loop(loop)
     set_icon(app)
 
     c = clientgui.ClientGUI(fname=args.filename)
@@ -32,21 +30,12 @@ def main():
     # Main event loop running forever
     try:
         c.show()
-        loop.run_forever()
-    except KeyboardInterrupt as e:  
-        log.info("Quitting due to user keyboard interrupt")
-    except SystemExit as e:
-        log.exception("SystemExit occurred in main loop")
-        raise
+        app.exec_()
     except Exception as e:
         log.exception("Exception occurred in main loop")
         raise
     finally:
         c.shutdown()
-        loop.stop()
-        loop.close()
-
-    sys.exit()
 
 
 def set_icon(app):

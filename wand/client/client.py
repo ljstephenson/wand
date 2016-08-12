@@ -1,29 +1,29 @@
 """
 Client for laser diagnostic operations
 """
-import asyncio
 import collections
-import weakref
 import numpy as np
-import sys
-import random
+import time
+import weakref
+
+from . import QtGui
 
 import wand.common as common
-from wand.client.channel import Channel
+from wand.client.server import Server
+from wand.client.peer import ThreadClient
+from wand import __version__
 
 
 @common.with_log
-class ClientBackend(common.JSONRPCPeer):
-    # List of configurable attributes (maintains order when dumping config)
-    # These will all be initialised during __init__ in the call to 
-    # super.__init__ because JSONRPCPeer is a JSONConfigurable
+class ClientBackend(ThreadClient):
     _attrs = collections.OrderedDict([
-                ('name', None),
-                ('servers', None),
-                ('short_names', None),
-            ])
+        ('name', None),
+        ('version', None),
+        ('servers', Server),
+        ('layout', None),
+    ])
 
-    def __init__(self, cls, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.check_config()
 
@@ -32,86 +32,28 @@ class ClientBackend(common.JSONRPCPeer):
         self.conns_by_s = weakref.WeakValueDictionary()
         self.conns_by_c = weakref.WeakValueDictionary()
         self.channels = collections.OrderedDict()
-
-        if cls is None:
-            cls = Channel
-
-        # Have short_name->name mapping, also need inverse as well
-        self.name_map = {v:k for k,v in self.short_names.items()}
+        self.name_map = collections.OrderedDict()
+        self.short_names = collections.OrderedDict()
 
         for s in self.servers.values():
-            for c in s.get('channels', []):
-                sname = self.name_map[c]
-                self.channels[c] = cls(self, cfg={'name':c, 'short_name':sname})
+            s.client = self
+            for c in s.channels.values():
+                c.client = self
+                self.channels[c.name] = c
+                self.name_map[c.name] = c.short_name
+                self.short_names[c.short_name] = c.name
 
     def startup(self):
-        """Place all startup methods here"""
         self.running = True
         for s in self.servers:
-            self.loop.run_until_complete(self.server_connect(s))
-        self.do_nothing()
+            self.server_connect(s)
+            self.request_version(s)
         self._log.info("Ready")
 
     def shutdown(self):
-        """Place all shutdown methods here"""
         self.running = False
-        self.cancel_pending_tasks()
         self.close_connections()
         self._log.info("Shutdown finished")
-
-    # -------------------------------------------------------------------------
-    # Network operations
-    #
-    async def server_connect(self, server, attempt=1):
-        """Connect to the named server"""
-        def disconnected(future):
-            """Simple closure so that we can tell which server disconnected"""
-            self.server_disconnected(server)
-
-        s = self.servers[server]
-        try:
-            reader, writer = await asyncio.open_connection(s['host'], s['port'])
-        except (ConnectionRefusedError, WindowsError) as e:
-            self._log.error("Connection failed: {}".format(e))
-            self.loop.create_task(self.server_reconnect(server, attempt))
-        else:
-            conn = common.JSONRPCConnection(self.handle_rpc, reader, writer)
-            addr = writer.get_extra_info('peername')
-
-            self.connections[addr] = conn
-            self.conns_by_s[server] = conn
-
-            channels = s.get('channels', [])
-            for c in channels:
-                self.conns_by_c[c] = conn
-                
-            future = self.loop.create_task(conn.listen())
-            future.add_done_callback(disconnected)
-
-    def server_disconnected(self, server):
-        """Called when server disconnects"""
-        self._log.info("{} disconnected".format(server))
-        conn = self.conns_by_s.pop(server, None)
-        if conn:
-            conn.close()
-            del conn
-        if self.running:
-            self.loop.create_task(self.server_reconnect(server))
-
-    async def server_reconnect(self, server, attempt=0):
-        backoff = 10 * attempt * random.random()
-        attempt = attempt + 1
-        if attempt < 5:
-            self._log.info("Attempting reconnect after {:.1f}s".format(backoff))
-            await asyncio.sleep(backoff)
-            await self.server_connect(server, attempt)
-        else:
-            self.loop.stop()
-            self._log.error("Aborted reconnect to '{}': too many failures".format(server))
-
-    def abort_connection(self, server, reason):
-        self.loop.stop()
-        self._log.error("'{}' refused connection: {}".format(server, reason))
 
     # -------------------------------------------------------------------------
     # RPC methods implemented by this class
@@ -147,24 +89,24 @@ class ClientBackend(common.JSONRPCPeer):
             # Locked channel may not be shown on this client at all
             locked.set_locked(True)
 
-        channels = self.servers.get(server).get('channels')
-        unlocked = [self.channels.get(c) for c in channels if c != channel]
+        s = self.servers.get(server)
+        s.locked = channel
+        unlocked = [self.channels.get(c) for c in s.channels if c != channel]
         for c in unlocked:
             c.set_locked(False)
 
     def rpc_unlocked(self, server):
-        channels = self.servers.get(server).get('channels')
-        unlocked = [self.channels.get(c) for c in channels]
+        s = self.servers.get(server)
+        s.locked = False
+        unlocked = [self.channels.get(c) for c in s.channels]
         for c in unlocked:
             c.set_locked(False)
 
     def rpc_paused(self, server, pause):
-        toolbar = self.toolbars[server]
-        toolbar.set_paused(pause)
+        self.servers.get(server).pause = pause
 
     def rpc_fast(self, server, fast):
-        toolbar = self.toolbars[server]
-        toolbar.set_fast(fast)
+        self.servers.get(server).fast = fast
 
     def rpc_server_state(self, server, pause, lock, fast):
         if lock:
@@ -174,23 +116,29 @@ class ClientBackend(common.JSONRPCPeer):
         self.rpc_paused(server, pause)
         self.rpc_fast(server, fast)
 
-    def rpc_connection_rejected(self, server, reason):
-        """Called by server to indicate that the connection was rejected"""
-        # Deliberately not called connection_refused - in this case the
-        # connection was made but the server rejected it for another reason
-        self.loop.call_soon(self.abort_connection, server, reason)
+    def rpc_uptime(self, server, uptime):
+        self.servers.get(server).uptime = uptime
 
     def rpc_ping(self, server):
         # self._log.debug("Ping from {}".format(server))
         pass
 
+    def rpc_timestamp(self, server, timestamp):
+        self._log.debug("{} timestamp:{}".format(server,
+                                                 time.ctime(timestamp)))
+
     def rpc_list_server_channels(self, server):
         """Return the configured list of channels under a server"""
-        return self.servers[server]['channels']
+        return list(self.servers.get(server).channels)
 
     def rpc_log(self, server, lvl, msg):
         """Servers can call this to use the client log"""
         self._log.log(lvl, "{} says: {}".format(server, msg))
+
+    def rpc_version(self):
+        # Note that this is the running version, not the config version.
+        # The patch number in config is assumed not to matter.
+        return __version__
 
     # -------------------------------------------------------------------------
     # Requests for RPC
@@ -235,26 +183,32 @@ class ClientBackend(common.JSONRPCPeer):
                 self.channels[c].from_json(cfg)
         s = self.servers.get(server)
         method = "register_client"
-        params = {"client":self.name, "channels":s.get('channels', [])}
+        params = {"client":self.name, "channels":list(s.channels)}
         self._server_request(server, method, params, cb=update_channels)
 
     def request_echo(self, server, string):
-        s = self.servers.get(server)
         method = "echo"
         params = {"s":string}
         self._server_request(server, method, params)
 
     def request_pause(self, server, pause):
-        s = self.servers.get(server)
         method = "pause"
         params = {"pause":pause}
         self._server_request(server, method, params)
 
     def request_fast(self, server, fast):
-        s = self.servers.get(server)
         method = "fast"
         params = {"fast":fast}
         self._server_request(server, method, params)
+
+    def request_version(self, server):
+        def checker(version):
+            try:
+                self.check_version(version, "server")
+            except AssertionError as e:
+                self.fatal(str(e))
+        method = "version"
+        self._server_request(server, method, cb=checker)
 
     # -------------------------------------------------------------------------
     # Helpers for channel/server requests
@@ -274,10 +228,38 @@ class ClientBackend(common.JSONRPCPeer):
     # -------------------------------------------------------------------------
     # Misc
     #
+    def fatal(self, reason):
+        """Force quits the application, logging the error message"""
+        self._log.critical(reason)
+        QtGui.QApplication.instance().quit()
+
     def get_channel_by_short_name(self, short_name):
         """Fetch the channel object using its short name"""
         name = self.short_names[short_name]
         return self.channels[name]
+
+    def check_version(self, version, owner):
+        """
+        Checks a version string against the internal running version.
+
+        Raise an assertion error on major mismatch, return False on a
+        minor mismatch and True otherwise.
+        """
+        # Versions consist of 3 numbers separated by dots, so split on
+        # the dots for Major/Minor/Patch number
+        vtuple = version.split('.')
+        internal = __version__.split('.')
+        msg = "{{}} version mismatch: client {}, {} {}".format(__version__,
+                                                               owner, version)
+
+        assert vtuple[0] == internal[0], msg.format("Major")
+
+        if vtuple[1] != internal[1]:
+            self._log.warning(msg.format("Minor"))
+            return False
+        else:
+            self._log.debug("Client and {} versions match".format(owner))
+            return True
 
     # -------------------------------------------------------------------------
     # Config sanitiser
@@ -285,12 +267,26 @@ class ClientBackend(common.JSONRPCPeer):
     def check_config(self):
         """Check the current config for errors and flag them"""
         try:
-            flat_layout = [shortname for row in self.layout for shortname in row]
-            for shortname in flat_layout:
-                assert shortname in self.short_names, "{}: No long name found".format(shortname)
-                name = self.short_names[shortname]
-                all_names = [ch for sv in self.servers.values() for ch in sv['channels']]
-                assert name in all_names, "{} not found in any server list".format(name)
+            # Raises AssertionError on major mismatch
+            self.check_version(self.version, "config")
+
+            # flatten the layout, which is a list of lists, to have all the
+            # short names we expect to see configured
+            flattened = [shortname for row in self.layout for shortname in row]
+
+            # Each short name is configured on the channel itself
+            all_names = [ch.short_name for sv in self.servers.values()
+                         for ch in sv.channels.values()]
+            count_names = collections.Counter(all_names)
+            for name in count_names:
+                err = "Short name '{}' is not unique".format(name)
+                assert count_names[name] == 1, err
+
+            # Check that all names in layout map to actual channels
+            for name in flattened:
+                err = "Can't map short name '{}' to a full name".format(name)
+                assert name in all_names, err
+
         except AssertionError as e:
             self._log.error("Error in config file: {}".format(e))
             raise

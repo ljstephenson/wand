@@ -20,7 +20,7 @@ class LeoniSwitcher(object):
     def _sendCommand(self, command):
         str = command+'\r\n'
         self._log.debug("Sending command: {}".format(command))
-        self.s.sendall( str.encode() )
+        self.s.sendall(str.encode())
 
         if command.endswith('?'):
             resp = self.s.recv(1024).decode().strip()
@@ -32,7 +32,7 @@ class LeoniSwitcher(object):
     def getNumChannels(self):
         if self.nChannels is None:
             # reply is "eol 1x16"
-            self.nChannels = int( self._sendCommand('type?')[6:] )
+            self.nChannels = int(self._sendCommand('type?')[6:])
             self._log.debug('nChannels = {}'.format(self.nChannels))
         return self.nChannels
 
@@ -44,7 +44,7 @@ class LeoniSwitcher(object):
         """Select the given channel number"""
         if channel < 0 or channel >= self.nChannels:
             raise ValueError('Channel out of bounds')
-        self._sendCommand( 'ch{}'.format(channel) )
+        self._sendCommand('ch{}'.format(channel))
         time.sleep(2e-3)
 
     def getChannel(self):

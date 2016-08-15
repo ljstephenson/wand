@@ -39,7 +39,7 @@ def init(as_switcher):
     lib.Instantiate.restype = ctypes.c_long
 
     # Turn off auto-switcher mode
-    lib.SetSwitcherMode( ctypes.c_long(0) )
+    lib.SetSwitcherMode(ctypes.c_long(0))
 
     if _SWITCHER:
         # Turn off auto exposure in all channels (1-8)
@@ -172,4 +172,3 @@ class WavemeterTask(object):
     def callback(self, mode, intval, dblval):
         """rocess the incoming callback from the wavemeter"""
         print("callback! {}, {}, {}".format(mode, intval, dblval))
-

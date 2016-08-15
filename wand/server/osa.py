@@ -108,7 +108,7 @@ class OSATask(PyDAQmx.Task):
         # Multiply by 10000 and cast to int to truncate data
         scale = 1e4
         data = np.multiply(data, scale).astype(int)
-        d = {'source':'osa', 'channel':self.channel.name, 'data':data.tolist(), 'scale':scale}
+        d = {'source': 'osa', 'channel': self.channel.name, 'data': data.tolist(), 'scale': scale}
 
         if not self.loop.is_closed():
             self.loop.create_task(self.queue.put(d))

@@ -134,7 +134,7 @@ class JSONConfigurable(object):
         """Save a configuration dict to a file"""
         # Default to pretty printing with indent
         if kwargs == {}:
-            kwargs = {'indent':4, 'separators':(',', ':')}
+            kwargs = {'indent': 4, 'separators': (',', ':')}
 
         if fname is not None:
             self.filename = fname
@@ -404,12 +404,12 @@ class JSONRPCConnection(object):
 
     async def request(self, method, id, params=None):
         """Make an RPC request"""
-        request = {'jsonrpc':'2.0', 'id':id, 'method':method, 'params':params}
+        request = {'jsonrpc': '2.0', 'id': id, 'method': method, 'params': params}
         await self.send_object(request)
 
     async def notify(self, method, params=None):
         """Send a notification"""
-        notification = {'jsonrpc':'2.0', 'method':method, 'params':params}
+        notification = {'jsonrpc': '2.0', 'method': method, 'params': params}
         await self.send_object(notification)
 
     async def send_object(self, obj):

@@ -50,7 +50,7 @@ class Server(common.JSONRPCPeer):
         ('channels', Channel),
     ])
     switch_interval = 10
-    data_frequency = {'fast':10, 'slow':1}
+    data_frequency = {'fast': 10, 'slow': 1}
     log_interval = 5
 
     def __init__(self, simulate=False, **kwargs):
@@ -294,7 +294,7 @@ class Server(common.JSONRPCPeer):
 
     def rpc_configure_server(self, cfg):
         # Only allow updates to acquisition mode, update speed and pause
-        cfg = {k:v for k,v in cfg.items if k in ['mode', 'fast', 'pause']}
+        cfg = {k: v for k, v in cfg.items if k in ['mode', 'fast', 'pause']}
         self.from_dict(cfg)
 
     def rpc_echo(self, s):
@@ -320,7 +320,7 @@ class Server(common.JSONRPCPeer):
                     self.notify_log(client, lvl=logging.ERROR, msg=msg)
                     self._log.error(msg)
         method='list_server_channels'
-        params={'server':self.name}
+        params={'server': self.name}
         self._request_client(client, method, params, cb=register_channels)
 
     # -------------------------------------------------------------------------
@@ -328,33 +328,33 @@ class Server(common.JSONRPCPeer):
     #
     def notify_locked(self, channel):
         method = "locked"
-        params = {"server":self.name, "channel":channel}
+        params = {"server": self.name, "channel": channel}
         self._notify_all(method, params)
 
     def notify_unlocked(self):
         method = "unlocked"
-        params = {"server":self.name}
+        params = {"server": self.name}
         self._notify_all(method, params)
 
     def notify_paused(self):
         method = "paused"
-        params = {"server":self.name, "pause":self.pause}
+        params = {"server": self.name, "pause": self.pause}
         self._notify_all(method, params)
 
     def notify_fast(self):
         method = "fast"
-        params = {"server":self.name, "fast":self.fast}
+        params = {"server": self.name, "fast": self.fast}
         self._notify_all(method, params)
 
     def notify_update_speed(self):
         method = "update_speed"
-        params = {"server":self.name, "speed":self.update_speed}
+        params = {"server": self.name, "speed": self.update_speed}
         self._notify_all(method, params)
 
     def notify_refresh_channel(self, channel, client=None):
         c = self.channels.get(channel)
         method = "refresh_channel"
-        params = {"channel":channel, "cfg":c.to_json()}
+        params = {"channel": channel, "cfg": c.to_json()}
         if client is not None:
             self._notify_client(client, method, params)
         else:
@@ -363,10 +363,10 @@ class Server(common.JSONRPCPeer):
     def notify_server_state(self, client=None):
         method = "server_state"
         params = {
-            'server':self.name,
-            'pause':self.pause,
-            'lock':self.locked,
-            'fast':self.fast
+            'server': self.name,
+            'pause': self.pause,
+            'lock': self.locked,
+            'fast': self.fast
         }
         if client is not None:
             self._notify_client(client, method, params)
@@ -375,12 +375,12 @@ class Server(common.JSONRPCPeer):
 
     def notify_log(self, client, lvl, msg):
         method = "log"
-        params = {'server':self.name, 'lvl':lvl, 'msg':msg}
+        params = {'server': self.name, 'lvl': lvl, 'msg': msg}
         self._notify_client(client, method, params)
 
     def ping(self):
         method = "ping"
-        params = {"server":self.name}
+        params = {"server": self.name}
         self._notify_all(method, params)
 
     # -------------------------------------------------------------------------
@@ -425,14 +425,14 @@ class Server(common.JSONRPCPeer):
     def basic_send_data(self, data):
         """Sends data to all clients indiscriminately"""
         method = data['source']
-        params = {k:v for k,v in data.items() if k != 'source'}
+        params = {k: v for k, v in data.items() if k != 'source'}
         self._notify_all(method, params)
 
     def send_data(self, data):
         """Send the data to the appropriate clients only"""
         channel = data['channel']
         method = data['source']
-        params = {k:v for k,v in data.items() if k != 'source'}
+        params = {k: v for k, v in data.items() if k != 'source'}
         self._notify_channel(channel, method, params)
 
     # -------------------------------------------------------------------------

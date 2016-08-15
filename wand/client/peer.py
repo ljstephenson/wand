@@ -27,14 +27,14 @@ class BaseConnection(object):
 
     def request(self, _id, method, params=None, cb=None):
         """Make an RPC request"""
-        request = {'jsonrpc':'2.0', 'id':_id, 'method':method}
+        request = {'jsonrpc': '2.0', 'id': _id, 'method': method}
         if params:
             request['params'] = params
         self.send_object(request)
 
     def notify(self, method, params=None):
         """Send a notification"""
-        notification = {'jsonrpc':'2.0', 'method':method}
+        notification = {'jsonrpc': '2.0', 'method': method}
         if params:
             notification['params'] = params
         self.send_object(notification)

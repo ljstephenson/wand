@@ -144,7 +144,7 @@ class WavemeterTask(object):
 
         f = lib.GetFrequencyNum(self.channel.number if _SWITCHER else 1,
                                 ctypes.c_double(0))
-        d = {'source':'wavemeter', 'channel':self.channel.name, 'data':f}
+        d = {'source': 'wavemeter', 'channel': self.channel.name, 'data': f}
 
         if not self.loop.is_closed() and not self._first:
             self.loop.create_task(self.queue.put(d))

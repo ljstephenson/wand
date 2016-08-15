@@ -81,7 +81,7 @@ class OSATask(FakeTask):
         data = np.arange(self.samples)
         data = np.asarray([self._trace(x) for x in data])
         data = np.multiply(data, scale).astype(int)
-        d = {'source':'osa', 'channel':self.channel.name, 'data':data.tolist(), 'scale':scale}
+        d = {'source': 'osa', 'channel': self.channel.name, 'data': data.tolist(), 'scale': scale}
         return d
 
     def _get_trace(self, centres, w):
@@ -113,7 +113,7 @@ class WavemeterTask(FakeTask):
         f = self.channel.reference
         # Choose between f, f+1MHz, Low signal, High signal
         f = random.choice([f, f + 1e-6, -3, -4], p=[0.4, 0.4, 0.1, 0.1])
-        d = {'source':'wavemeter', 'channel':self.channel.name, 'data':f}
+        d = {'source': 'wavemeter', 'channel': self.channel.name, 'data': f}
         return d
 
     def setExposure(self):

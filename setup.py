@@ -20,6 +20,6 @@ setup(
         'PyDAQmx>=1',
         'quamash',
     ],
-    package_data={'wand':['resources/*.svg', 'resources/*.json']},
+    package_data={'wand': ['resources/*.svg', 'resources/*.json']},
     include_package_data=True
 )

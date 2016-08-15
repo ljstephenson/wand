@@ -208,7 +208,7 @@ class GUIChannel(Channel):
         predicted = QtGui.QFontMetrics(font).width(text)
         available = labelitem.boundingRect().width()
         while predicted > available:
-            fsize = int(0.75*size)
+            size = int(0.75*size)
             font.setPointSize(size)
             predicted = QtGui.QFontMetrics(font).width(text)
 

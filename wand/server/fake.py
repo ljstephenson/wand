@@ -24,7 +24,8 @@ class FakeTask(object):
     """Fake task that mimics data production but does not access hardware"""
 
     def __init__(self, loop, queue, channel):
-        # self._log.debug("Creating Task object for channel: {}".format(channel.name))
+        # self._log.debug(
+        #     "Creating Task object for channel: {}".format(channel.name))
         self.loop = loop
         self.queue = queue
         self.channel = channel
@@ -81,7 +82,8 @@ class OSATask(FakeTask):
         data = np.arange(self.samples)
         data = np.asarray([self._trace(x) for x in data])
         data = np.multiply(data, scale).astype(int)
-        d = {'source': 'osa', 'channel': self.channel.name, 'data': data.tolist(), 'scale': scale}
+        d = {'source': 'osa', 'channel': self.channel.name,
+             'data': data.tolist(), 'scale': scale}
         return d
 
     def _get_trace(self, centres, w):

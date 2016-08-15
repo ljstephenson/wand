@@ -10,7 +10,8 @@ import wand.common as common
 def parse_args():
     parser = argparse.ArgumentParser("Python powered Wavemeter server")
     parser.add_argument("filename", help="JSON configuration file")
-    parser.add_argument("-s", "--simulate", help="Run as simulation", action='store_true')
+    parser.add_argument("-s", "--simulate",
+                        help="Run as simulation", action='store_true')
     common.add_verbosity_args(parser)
     return parser.parse_args()
 

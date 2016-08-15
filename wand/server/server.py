@@ -116,7 +116,8 @@ class Server(common.JSONRPCPeer):
 
     def startup(self):
         # Start the TCP server
-        coro = asyncio.start_server(self.client_connected, self.host, self.port)
+        coro = asyncio.start_server(
+            self.client_connected, self.host, self.port)
         self.tcp_server = self.loop.run_until_complete(coro)
         # Schedule switching and store the task
         self._next = self.loop.call_soon(self.select)
@@ -167,7 +168,8 @@ class Server(common.JSONRPCPeer):
             # If all clients have been removed, assume we can return to
             # switching mode
             if not self.connections:
-                self._log.info("No more clients connected, force switching mode")
+                self._log.info(
+                    "No more clients connected, force switching mode")
                 self.locked = False
                 self.pause = False
                 self.fast = True
@@ -198,7 +200,8 @@ class Server(common.JSONRPCPeer):
 
         # Schedule the next switch
         if not self.locked:
-            self._next = self.loop.call_later(self.switch_interval, self.select)
+            self._next = self.loop.call_later(
+                self.switch_interval, self.select)
 
     def setup_data_rate(self):
         speed = 'fast' if self.fast else 'slow'
@@ -316,7 +319,8 @@ class Server(common.JSONRPCPeer):
                     self.channels[c].add_client(client, conn)
                     self.notify_refresh_channel(c, client)
                 except KeyError:
-                    msg = "Error registering client: Channel '{}' not recognised".format(c)
+                    msg = ("Error registering client: "
+                           "Channel '{}' not recognised".format(c))
                     self.notify_log(client, lvl=logging.ERROR, msg=msg)
                     self._log.error(msg)
         method = 'list_server_channels'
@@ -474,7 +478,8 @@ class Server(common.JSONRPCPeer):
     #
     def send_influx(self, data):
         """Send reformatted wavemeter data object to influxDB server"""
-        self._log.debug("Logging data for {} from wavemeter".format(data['channel']))
+        self._log.debug(
+            "Logging data for {} from wavemeter".format(data['channel']))
         self.influx_cl.write_points(self.data2influx(data))
 
     def data2influx(self, data):
@@ -544,9 +549,12 @@ class Server(common.JSONRPCPeer):
             self.check_version(self.version, "config")
 
             numbers = []
+
             for name, channel in self.channels.items():
-                assert name == channel.name, "{}: Name doesn't match key".format(name)
-                assert channel.number not in numbers, "{}: channel number already in use".format(name)
+                assert name == channel.name, (
+                    "{}: Name doesn't match key".format(name))
+                assert channel.number not in numbers, (
+                    "{}: channel number already in use".format(name))
                 numbers.append(channel.number)
         except AssertionError as e:
             self._log.error("Error in config file: {}".format(e))

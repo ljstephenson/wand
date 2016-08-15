@@ -189,12 +189,30 @@ class GUIChannel(Channel):
             self._f = val
             self._frequency.setText("{:.7f}".format(val))
 
+        # Get the text to be shown in the detuning box
         if not error:
             # Detuning in MHz not THz
-            self._detuning.setText("{:.1f}".format(self.detuning*1e6),
-                                   color="ffffff")
+            text = "{:.1f}".format(self.detuning*1e6)
+            color = "ffffff"
         else:
-            self._detuning.setText("{}".format(error), color="ff9900")
+            text = error
+            color = "ff9900"
+
+        # Default font size for detuning is 64 point
+        self._set_text_no_resize(self._detuning, text, size=64, color=color)
+
+    def _set_text_no_resize(self, labelitem, text, size, color="ffffff"):
+        """Set text to maximum size in a labelitem without resizing the box"""
+        font = labelitem.item.font()
+        font.setPointSize(size)
+        predicted = QtGui.QFontMetrics(font).width(text)
+        available = labelitem.boundingRect().width()
+        while predicted > available:
+            size = int(0.75*size)
+            font.setPointSize(size)
+            predicted = QtGui.QFontMetrics(font).width(text)
+
+        labelitem.setText(text, color=color, size="{}pt".format(size))
 
     @property
     def color(self):

@@ -5,7 +5,8 @@ scripts = [
     "wand_client=wand.client.main:main",
 ]
 
-setup(name='wand',
+setup(
+    name='wand',
     version='2.0.1',
     url='https://github.com/ljstephenson/wand',
     author='Laurent Stephenson',

@@ -80,7 +80,7 @@ class RPCPeer(JSONConfigurable):
     def add_rpc_methods(self):
         """Add the rpc methods to the dispatcher (call only during init)"""
         rpc_methods = [s for s in dir(self) if s.startswith('rpc_')
-                                            and callable(getattr(self, s))]
+                       and callable(getattr(self, s))]
         for method in rpc_methods:
             fn = getattr(self, method)
             # Remove the prefix

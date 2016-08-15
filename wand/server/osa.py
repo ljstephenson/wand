@@ -93,7 +93,7 @@ class OSATask(PyDAQmx.Task):
         _read = np.int32()
         try:
             self.ReadAnalogF64(SAMPLES, TIMEOUT, PyDAQmx.DAQmx_Val_GroupByScanNumber, data,
-                            SAMPLES, ctypes.byref(np.ctypeslib.as_ctypes(_read)), None)
+                               SAMPLES, ctypes.byref(np.ctypeslib.as_ctypes(_read)), None)
         except Exception as e:
             self._log.error("Read Error: {}".format(e))
 

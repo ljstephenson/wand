@@ -4,7 +4,10 @@ Wavemeter interface
 import asyncio
 import ctypes
 from wand.common import with_log
-from wand.server.wlmconstants import *
+from wand.server.wlmconstants import (
+    cMeasurement, cInstNotification, cCtrlMeasurementTriggerSuccess,
+    cNotifyInstallCallback, cNotifyRemoveCallback
+)
 
 __all__ = [
     'WavemeterTask',

@@ -26,7 +26,7 @@ def main():
 
     try:
         loop.run_forever()
-    except KeyboardInterrupt as e:  
+    except KeyboardInterrupt as e:
         log.info("Quitting due to user keyboard interrupt")
     except SystemExit as e:
         log.exception("SystemExit occurred in main loop")

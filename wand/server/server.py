@@ -36,7 +36,7 @@ class Server(common.JSONRPCPeer):
     to clients.
     """
     # List of configurable attributes (maintains order when dumping config)
-    # These will all be initialised during __init__ in the call to 
+    # These will all be initialised during __init__ in the call to
     # super.__init__ because JSONRPCPeer is a JSONConfigurable
     _attrs = collections.OrderedDict([
         ('name', None),

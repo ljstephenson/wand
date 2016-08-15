@@ -56,7 +56,7 @@ class OSATask(PyDAQmx.Task):
         self.loop = loop
         self.queue = queue
         self.channel = channel
-    
+
         # Blue/Red lasers require using different etalons, so have different
         # analog inputs to the DAQ card
         if self.channel.blue:
@@ -66,7 +66,7 @@ class OSATask(PyDAQmx.Task):
             AI = AI_RED
             TRIG = TRIG_RED
 
-        # We want to measure voltage in range MIN_V to MAX_V, with a finite  
+        # We want to measure voltage in range MIN_V to MAX_V, with a finite
         # number of samples taken at RATE, triggering collection on the
         # falling edge of the trigger channel
         self.CreateAIVoltageChan(AI, '', PyDAQmx.DAQmx_Val_NRSE, MIN_V, MAX_V,
@@ -105,7 +105,7 @@ class OSATask(PyDAQmx.Task):
         scale = 1e4
         data = np.multiply(data, scale).astype(int)
         d = {'source':'osa', 'channel':self.channel.name, 'data':data.tolist(), 'scale':scale}
-    
+
         if not self.loop.is_closed():
             self.loop.create_task(self.queue.put(d))
 

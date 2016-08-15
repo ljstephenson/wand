@@ -33,7 +33,7 @@ class GUIChannel(Channel):
         self._frequency = pg.LabelItem("")
         self._frequency.setText("-", size="12pt")
         self._alias = pg.LabelItem("")
-        self._alias.setText("-", size="32pt")
+        self._alias.setText("Name", size="32pt")
 
         self._osa = pg.PlotItem()
         self._osa.hideAxis('bottom')
@@ -55,12 +55,12 @@ class GUIChannel(Channel):
 
     def _gui_layout(self):
         """Place the initialised GUI items"""
-        self._plot.addItem(self._osa, colspan=2)
+        self._plot.addItem(self._osa, colspan=3)
         self._plot.nextRow()
-        self._plot.addItem(self._detuning, colspan=2)
+        self._plot.addItem(self._detuning, colspan=3)
         self._plot.nextRow()
         self._plot.addItem(self._alias)
-        self._plot.addItem(self._frequency)
+        self._plot.addItem(self._frequency, colspan=2)
 
         self._dock.addWidget(self._plot, colspan=7)
         self._dock.addWidget(self._lock, row=1, col=1)
@@ -189,30 +189,12 @@ class GUIChannel(Channel):
             self._f = val
             self._frequency.setText("{:.7f}".format(val))
 
-        # Get the text to be shown in the detuning box
         if not error:
             # Detuning in MHz not THz
-            text = "{:.1f}".format(self.detuning*1e6)
-            color = "ffffff"
+            self._detuning.setText("{:.1f}".format(self.detuning*1e6),
+                                   color="ffffff")
         else:
-            text = error
-            color = "ff9900"
-
-        # Default font size for detuning is 64 point
-        self._set_text_no_resize(self._detuning, text, size=64, color=color)
-
-    def _set_text_no_resize(self, labelitem, text, size, color="ffffff"):
-        """Set text to maximum size in a labelitem without resizing the box"""
-        font = labelitem.item.font()
-        font.setPointSize(size)
-        predicted = QtGui.QFontMetrics(font).width(text)
-        available = labelitem.boundingRect().width()
-        while predicted > available:
-            fsize = int(0.75*size)
-            font.setPointSize(size)
-            predicted = QtGui.QFontMetrics(font).width(text)
-
-        labelitem.setText(text, color=color, size="{}pt".format(size))
+            self._detuning.setText("{}".format(error), color="ff9900")
 
     @property
     def color(self):

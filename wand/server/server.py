@@ -319,8 +319,8 @@ class Server(common.JSONRPCPeer):
                     msg = "Error registering client: Channel '{}' not recognised".format(c)
                     self.notify_log(client, lvl=logging.ERROR, msg=msg)
                     self._log.error(msg)
-        method='list_server_channels'
-        params={'server': self.name}
+        method = 'list_server_channels'
+        params = {'server': self.name}
         self._request_client(client, method, params, cb=register_channels)
 
     # -------------------------------------------------------------------------

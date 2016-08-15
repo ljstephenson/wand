@@ -398,7 +398,6 @@ class Server(common.JSONRPCPeer):
 
     def _notify_channel(self, channel, *args, **kwargs):
         c = self.channels.get(channel)
-        #print("\nNotify channel: {} args: {} kwargs: {}".format(channel, args, kwargs))
         if c is None:
             self._log.error("Channel '{}' not found".format(channel))
         else:
@@ -406,11 +405,8 @@ class Server(common.JSONRPCPeer):
                 self.notify(conn, *args, **kwargs)
 
     def _notify_all(self, *args, **kwargs):
-        #print("\nNotify all: args: {} kwargs: {}".format(args, kwargs))
         for conn in self.connections.values():
             self.notify(conn, *args, **kwargs)
-        #for conn in self.clients.values()
-        #    conn.notify(*args, **kwargs)
 
     # -------------------------------------------------------------------------
     # Data consumption

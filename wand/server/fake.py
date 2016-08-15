@@ -24,7 +24,7 @@ class FakeTask(object):
     """Fake task that mimics data production but does not access hardware"""
 
     def __init__(self, loop, queue, channel):
-        #self._log.debug("Creating Task object for channel: {}".format(channel.name))
+        # self._log.debug("Creating Task object for channel: {}".format(channel.name))
         self.loop = loop
         self.queue = queue
         self.channel = channel

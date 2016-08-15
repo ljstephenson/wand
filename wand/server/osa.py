@@ -18,6 +18,8 @@ NO_OPTIONS = 0
 
 # Approx collection frequency
 _FREQUENCY = 10
+
+
 def set_frequency(frequency):
     global _FREQUENCY
     _FREQUENCY = frequency
@@ -31,6 +33,7 @@ RATE = 1.25e6
 TIMEOUT = 0.1
 MIN_V = -1.0
 MAX_V = 1.0
+
 
 def channel_setup(config):
     """Set up the channels to be used in the DAQ card"""
@@ -46,6 +49,7 @@ class OSATask(PyDAQmx.Task):
     """
     Task object for collecting data from the Optical Spectrum Analyser
     """
+
     def __init__(self, loop, queue, channel):
         """
         Set up the Task in the DAQ card ready for use

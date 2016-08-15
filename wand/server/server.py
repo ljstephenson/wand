@@ -229,7 +229,6 @@ class Server(common.JSONRPCPeer):
                 self.loop.call_soon(self._next.cancel)
             self._next = self.loop.call_soon(self.select, channel)
 
-
     def rpc_unlock(self):
         """Resume normal switching"""
         self._log.info("Unlocking switcher")
@@ -310,6 +309,7 @@ class Server(common.JSONRPCPeer):
     #
     def request_list_server_channels(self, client):
         conn = self.connections[client]
+
         def register_channels(channels):
             for c in channels:
                 try:

@@ -15,6 +15,8 @@ __all__ = [
 
 # Approx collection frequency
 _FREQUENCY = 10
+
+
 def set_frequency(frequency):
     global _FREQUENCY
     _FREQUENCY = frequency
@@ -62,6 +64,8 @@ def switch(number=1):
 # Callback type to be defined. This must be in scope as long as the callback is
 # in use, so just define it here
 CALLBACK = ctypes.CFUNCTYPE(None, ctypes.c_long, ctypes.c_long, ctypes.c_double)
+
+
 @with_log
 class WavemeterTask(object):
     """
@@ -74,6 +78,7 @@ class WavemeterTask(object):
         - The current implementation polls the wavemeter, but is non-blocking
           thanks to the asyncio library
     """
+
     def __init__(self, loop, queue, channel):
         """initialise"""
         self._log.debug("Creating Task object for channel: {}".format(channel.name))

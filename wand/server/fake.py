@@ -12,6 +12,8 @@ __all__ = [
 
 
 _FREQUENCY = 10
+
+
 def set_frequency(frequency):
     global _FREQUENCY
     _FREQUENCY = frequency
@@ -20,6 +22,7 @@ def set_frequency(frequency):
 @with_log
 class FakeTask(object):
     """Fake task that mimics data production but does not access hardware"""
+
     def __init__(self, loop, queue, channel):
         #self._log.debug("Creating Task object for channel: {}".format(channel.name))
         self.loop = loop
@@ -70,7 +73,6 @@ class OSATask(FakeTask):
         # Infinite generator using two traces
         self.data = itertools.cycle(self._get_trace_data() for _ in range(2))
 
-
     def _get_data(self):
         return next(self.data)
 
@@ -84,6 +86,7 @@ class OSATask(FakeTask):
 
     def _get_trace(self, centres, w):
         lorentzians = [self._get_lorentzian(x0, w) for x0 in centres]
+
         def trace(x):
             return sum([f(x)+random.random()*0.02 for f in lorentzians])
         return trace

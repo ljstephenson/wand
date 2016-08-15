@@ -80,6 +80,7 @@ class JSONConfigurable(object):
 
     This schema allows nested JSONConfigurables.
     """
+
     def __init__(self, cfg=None, cfg_str=None, fname=None):
         """Initialise a JSONConfigurable with the given config option. """
         # Check that only one of the initialising options was used
@@ -223,6 +224,7 @@ class JSONRPCPeer(JSONConfigurable):
     """
     Base class that acts as both RPC server and client.
     """
+
     def __init__(self, *args, **kwargs):
         # JSON configuration initialisation
         super().__init__(*args, **kwargs)
@@ -384,6 +386,7 @@ class JSONRPCPeer(JSONConfigurable):
 
 class JSONRPCConnection(object):
     """Represents a connection between one RPC peer and another"""
+
     def __init__(self, handler, reader, writer):
         # Handler is the callback used to handle RPC objects
         self.handler = handler
@@ -437,6 +440,7 @@ class JSONStreamIterator(object):
     Use with e.g. 'async for' loops. May return a list in the case of batch
     requests/responses, so the user must check for this possibility.
     """
+
     def __init__(self, reader, **kwargs):
         self.reader = reader
         self.buffer = ""

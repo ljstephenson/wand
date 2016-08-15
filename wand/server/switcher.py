@@ -6,6 +6,7 @@ import time
 
 from wand.common import with_log
 
+
 @with_log
 class LeoniSwitcher(object):
     def __init__(self, host, port=10001):

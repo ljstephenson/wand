@@ -52,6 +52,7 @@ class RPCPeer(JSONConfigurable):
     """
     Base class that acts as both RPC server and client.
     """
+
     def __init__(self, *args, **kwargs):
         # JSON configuration initialisation
         super().__init__(*args, **kwargs)
@@ -221,6 +222,7 @@ class Decoder(QtCore.QObject):
 @with_log
 class RPCClient(RPCPeer):
     """Handles making the connections as well"""
+
     def server_connect(self, server):
         s = self.servers.get(server)
         sock = QtNetwork.QTcpSocket()

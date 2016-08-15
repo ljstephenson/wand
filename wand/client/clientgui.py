@@ -297,6 +297,7 @@ class GUIServer(QtGui.QToolBar):
 
 class GUIServerLite(Server):
     """docstring for GUIServer"""
+
     def __init__(self, *args, **kwargs):
         self._attrs.update({"channels":GUIChannel})
         super().__init__(*args, **kwargs)

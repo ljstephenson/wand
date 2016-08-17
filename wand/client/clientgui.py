@@ -72,12 +72,12 @@ class GUIChannel(Channel):
 
         # Sort the layout to make the most of available space
         self._plot.ci.setSpacing(2)
-        self._plot.ci.setContentsMargins(2,2,2,2)
-        self._dock.layout.setContentsMargins(0,0,0,4)
-        for i in [0,2,4,6]:
+        self._plot.ci.setContentsMargins(2, 2, 2, 2)
+        self._dock.layout.setContentsMargins(0, 0, 0, 4)
+        for i in [0, 2, 4, 6]:
             self._dock.layout.setColumnMinimumWidth(i, 4)
-        for i in [1,3,5]:
-            self._dock.layout.setColumnStretch(i,1)
+        for i in [1, 3, 5]:
+            self._dock.layout.setColumnStretch(i, 1)
 
     def _enable_all(self, enable):
         """Enable or disable all editable boxes"""
@@ -102,12 +102,12 @@ class GUIChannel(Channel):
     def ref(self, val):
         if val != self._ref:
             self.client.request_configure_channel(self.name,
-                                                  cfg={'reference':val})
+                                                  cfg={'reference': val})
 
     def exp(self, val):
         if val != self._exp:
             self.client.request_configure_channel(self.name,
-                                                  cfg={'exposure':val})
+                                                  cfg={'exposure': val})
 
     def save(self):
         self.client.request_save_channel_settings(self.name)
@@ -297,15 +297,16 @@ class GUIServer(QtGui.QToolBar):
 
 class GUIServerLite(Server):
     """docstring for GUIServer"""
+
     def __init__(self, *args, **kwargs):
-        self._attrs.update({"channels":GUIChannel})
+        self._attrs.update({"channels": GUIChannel})
         super().__init__(*args, **kwargs)
 
 
 @with_log
 class ClientGUI(ClientBackend):
     def __init__(self, *args, **kwargs):
-        self._attrs.update({"servers":GUIServerLite})
+        self._attrs.update({"servers": GUIServerLite})
 
         self.win = QtGui.QMainWindow()
         self.area = dock.DockArea()

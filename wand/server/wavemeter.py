@@ -4,7 +4,10 @@ Wavemeter interface
 import asyncio
 import ctypes
 from wand.common import with_log
-from wand.server.wlmconstants import *
+from wand.server.wlmconstants import (
+    cMeasurement, cInstNotification, cCtrlMeasurementTriggerSuccess,
+    cNotifyInstallCallback, cNotifyRemoveCallback
+)
 
 __all__ = [
     'WavemeterTask',
@@ -15,6 +18,8 @@ __all__ = [
 
 # Approx collection frequency
 _FREQUENCY = 10
+
+
 def set_frequency(frequency):
     global _FREQUENCY
     _FREQUENCY = frequency
@@ -37,7 +42,7 @@ def init(as_switcher):
     lib.Instantiate.restype = ctypes.c_long
 
     # Turn off auto-switcher mode
-    lib.SetSwitcherMode( ctypes.c_long(0) )
+    lib.SetSwitcherMode(ctypes.c_long(0))
 
     if _SWITCHER:
         # Turn off auto exposure in all channels (1-8)
@@ -61,7 +66,10 @@ def switch(number=1):
 
 # Callback type to be defined. This must be in scope as long as the callback is
 # in use, so just define it here
-CALLBACK = ctypes.CFUNCTYPE(None, ctypes.c_long, ctypes.c_long, ctypes.c_double)
+CALLBACK = ctypes.CFUNCTYPE(
+    None, ctypes.c_long, ctypes.c_long, ctypes.c_double)
+
+
 @with_log
 class WavemeterTask(object):
     """
@@ -74,9 +82,11 @@ class WavemeterTask(object):
         - The current implementation polls the wavemeter, but is non-blocking
           thanks to the asyncio library
     """
+
     def __init__(self, loop, queue, channel):
         """initialise"""
-        self._log.debug("Creating Task object for channel: {}".format(channel.name))
+        self._log.debug(
+            "Creating Task object for channel: {}".format(channel.name))
         self.loop = loop
         self.queue = queue
         self.channel = channel
@@ -139,7 +149,7 @@ class WavemeterTask(object):
 
         f = lib.GetFrequencyNum(self.channel.number if _SWITCHER else 1,
                                 ctypes.c_double(0))
-        d = {'source':'wavemeter', 'channel':self.channel.name, 'data':f}
+        d = {'source': 'wavemeter', 'channel': self.channel.name, 'data': f}
 
         if not self.loop.is_closed() and not self._first:
             self.loop.create_task(self.queue.put(d))
@@ -167,4 +177,3 @@ class WavemeterTask(object):
     def callback(self, mode, intval, dblval):
         """rocess the incoming callback from the wavemeter"""
         print("callback! {}, {}, {}".format(mode, intval, dblval))
-

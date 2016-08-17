@@ -153,12 +153,12 @@ class ClientBackend(ThreadClient):
     #
     def request_echo_channel_config(self, channel):
         method = "echo_channel_config"
-        params = {"channel":channel}
+        params = {"channel": channel}
         self._channel_request(channel, method, params)
 
     def request_lock(self, channel):
         method = "lock"
-        params = {"channel":channel}
+        params = {"channel": channel}
         self._channel_request(channel, method, params)
 
     def request_unlock(self, channel):
@@ -168,12 +168,12 @@ class ClientBackend(ThreadClient):
 
     def request_configure_channel(self, channel, cfg):
         method = "configure_channel"
-        params = {"channel":channel, "cfg":cfg}
+        params = {"channel": channel, "cfg": cfg}
         self._channel_request(channel, method, params)
 
     def request_save_channel_settings(self, channel):
         method = "save_channel_settings"
-        params = {"channel":channel}
+        params = {"channel": channel}
         self._channel_request(channel, method, params)
 
     def request_register_client(self, server):
@@ -183,22 +183,22 @@ class ClientBackend(ThreadClient):
                 self.channels[c].from_json(cfg)
         s = self.servers.get(server)
         method = "register_client"
-        params = {"client":self.name, "channels":list(s.channels)}
+        params = {"client": self.name, "channels": list(s.channels)}
         self._server_request(server, method, params, cb=update_channels)
 
     def request_echo(self, server, string):
         method = "echo"
-        params = {"s":string}
+        params = {"s": string}
         self._server_request(server, method, params)
 
     def request_pause(self, server, pause):
         method = "pause"
-        params = {"pause":pause}
+        params = {"pause": pause}
         self._server_request(server, method, params)
 
     def request_fast(self, server, fast):
         method = "fast"
-        params = {"fast":fast}
+        params = {"fast": fast}
         self._server_request(server, method, params)
 
     def request_version(self, server):

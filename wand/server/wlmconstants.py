@@ -275,11 +275,11 @@ cCtrlLoadArray   = 0x0020
 
 # Additional Operation Flag Constants (combine with "Base Operation Constants" above.)
 cCtrlDontOverwrite = 0x0000
-cCtrlOverwrite     = 0x1000 # don't combine with cCtrlFileDialog
+cCtrlOverwrite     = 0x1000  # don't combine with cCtrlFileDialog
 cCtrlFileGiven     = 0x0000
-cCtrlFileDialog    = 0x2000 # don't combine with cCtrlOverwrite and cCtrlFileASCII
-cCtrlFileBinary    = 0x0000 # *.smr, *.ltr
-cCtrlFileASCII     = 0x4000 # *.smx, *.ltx, don't combine with cCtrlFileDialog
+cCtrlFileDialog    = 0x2000  # don't combine with cCtrlOverwrite and cCtrlFileASCII
+cCtrlFileBinary    = 0x0000  # *.smr, *.ltr
+cCtrlFileASCII     = 0x4000  # *.smx, *.ltx, don't combine with cCtrlFileDialog
 
 # Measurement Control Mode Constants
 cCtrlMeasDelayRemove = 0

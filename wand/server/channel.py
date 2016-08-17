@@ -44,5 +44,6 @@ class Channel(common.JSONConfigurable):
 
     def remove_client(self, client):
         if client in self.clients:
-            self._log.debug("{}: Removing client: {}".format(self.name, client))
+            self._log.debug(
+                "{}: Removing client: {}".format(self.name, client))
             del self.clients[client]

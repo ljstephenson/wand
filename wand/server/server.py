@@ -36,7 +36,7 @@ class Server(common.JSONRPCPeer):
     to clients.
     """
     # List of configurable attributes (maintains order when dumping config)
-    # These will all be initialised during __init__ in the call to 
+    # These will all be initialised during __init__ in the call to
     # super.__init__ because JSONRPCPeer is a JSONConfigurable
     _attrs = collections.OrderedDict([
         ('name', None),
@@ -50,7 +50,7 @@ class Server(common.JSONRPCPeer):
         ('channels', Channel),
     ])
     switch_interval = 10
-    data_frequency = {'fast':10, 'slow':1}
+    data_frequency = {'fast': 10, 'slow': 1}
     log_interval = 5
 
     def __init__(self, simulate=False, **kwargs):
@@ -116,7 +116,8 @@ class Server(common.JSONRPCPeer):
 
     def startup(self):
         # Start the TCP server
-        coro = asyncio.start_server(self.client_connected, self.host, self.port)
+        coro = asyncio.start_server(
+            self.client_connected, self.host, self.port)
         self.tcp_server = self.loop.run_until_complete(coro)
         # Schedule switching and store the task
         self._next = self.loop.call_soon(self.select)
@@ -167,7 +168,8 @@ class Server(common.JSONRPCPeer):
             # If all clients have been removed, assume we can return to
             # switching mode
             if not self.connections:
-                self._log.info("No more clients connected, force switching mode")
+                self._log.info(
+                    "No more clients connected, force switching mode")
                 self.locked = False
                 self.pause = False
                 self.fast = True
@@ -198,7 +200,8 @@ class Server(common.JSONRPCPeer):
 
         # Schedule the next switch
         if not self.locked:
-            self._next = self.loop.call_later(self.switch_interval, self.select)
+            self._next = self.loop.call_later(
+                self.switch_interval, self.select)
 
     def setup_data_rate(self):
         speed = 'fast' if self.fast else 'slow'
@@ -228,7 +231,6 @@ class Server(common.JSONRPCPeer):
             if self._next:
                 self.loop.call_soon(self._next.cancel)
             self._next = self.loop.call_soon(self.select, channel)
-
 
     def rpc_unlock(self):
         """Resume normal switching"""
@@ -295,7 +297,7 @@ class Server(common.JSONRPCPeer):
 
     def rpc_configure_server(self, cfg):
         # Only allow updates to acquisition mode, update speed and pause
-        cfg = {k:v for k,v in cfg.items if k in ['mode', 'fast', 'pause']}
+        cfg = {k: v for k, v in cfg.items if k in ['mode', 'fast', 'pause']}
         self.from_dict(cfg)
 
     def rpc_echo(self, s):
@@ -310,17 +312,19 @@ class Server(common.JSONRPCPeer):
     #
     def request_list_server_channels(self, client):
         conn = self.connections[client]
+
         def register_channels(channels):
             for c in channels:
                 try:
                     self.channels[c].add_client(client, conn)
                     self.notify_refresh_channel(c, client)
                 except KeyError:
-                    msg = "Error registering client: Channel '{}' not recognised".format(c)
+                    msg = ("Error registering client: "
+                           "Channel '{}' not recognised".format(c))
                     self.notify_log(client, lvl=logging.ERROR, msg=msg)
                     self._log.error(msg)
-        method='list_server_channels'
-        params={'server':self.name}
+        method = 'list_server_channels'
+        params = {'server': self.name}
         self._request_client(client, method, params, cb=register_channels)
 
     # -------------------------------------------------------------------------
@@ -328,33 +332,33 @@ class Server(common.JSONRPCPeer):
     #
     def notify_locked(self, channel):
         method = "locked"
-        params = {"server":self.name, "channel":channel}
+        params = {"server": self.name, "channel": channel}
         self._notify_all(method, params)
 
     def notify_unlocked(self):
         method = "unlocked"
-        params = {"server":self.name}
+        params = {"server": self.name}
         self._notify_all(method, params)
 
     def notify_paused(self):
         method = "paused"
-        params = {"server":self.name, "pause":self.pause}
+        params = {"server": self.name, "pause": self.pause}
         self._notify_all(method, params)
 
     def notify_fast(self):
         method = "fast"
-        params = {"server":self.name, "fast":self.fast}
+        params = {"server": self.name, "fast": self.fast}
         self._notify_all(method, params)
 
     def notify_update_speed(self):
         method = "update_speed"
-        params = {"server":self.name, "speed":self.update_speed}
+        params = {"server": self.name, "speed": self.update_speed}
         self._notify_all(method, params)
 
     def notify_refresh_channel(self, channel, client=None):
         c = self.channels.get(channel)
         method = "refresh_channel"
-        params = {"channel":channel, "cfg":c.to_json()}
+        params = {"channel": channel, "cfg": c.to_json()}
         if client is not None:
             self._notify_client(client, method, params)
         else:
@@ -363,10 +367,10 @@ class Server(common.JSONRPCPeer):
     def notify_server_state(self, client=None):
         method = "server_state"
         params = {
-            'server':self.name,
-            'pause':self.pause,
-            'lock':self.locked,
-            'fast':self.fast
+            'server': self.name,
+            'pause': self.pause,
+            'lock': self.locked,
+            'fast': self.fast
         }
         if client is not None:
             self._notify_client(client, method, params)
@@ -375,12 +379,12 @@ class Server(common.JSONRPCPeer):
 
     def notify_log(self, client, lvl, msg):
         method = "log"
-        params = {'server':self.name, 'lvl':lvl, 'msg':msg}
+        params = {'server': self.name, 'lvl': lvl, 'msg': msg}
         self._notify_client(client, method, params)
 
     def ping(self):
         method = "ping"
-        params = {"server":self.name}
+        params = {"server": self.name}
         self._notify_all(method, params)
 
     # -------------------------------------------------------------------------
@@ -398,7 +402,6 @@ class Server(common.JSONRPCPeer):
 
     def _notify_channel(self, channel, *args, **kwargs):
         c = self.channels.get(channel)
-        #print("\nNotify channel: {} args: {} kwargs: {}".format(channel, args, kwargs))
         if c is None:
             self._log.error("Channel '{}' not found".format(channel))
         else:
@@ -406,11 +409,8 @@ class Server(common.JSONRPCPeer):
                 self.notify(conn, *args, **kwargs)
 
     def _notify_all(self, *args, **kwargs):
-        #print("\nNotify all: args: {} kwargs: {}".format(args, kwargs))
         for conn in self.connections.values():
             self.notify(conn, *args, **kwargs)
-        #for conn in self.clients.values()
-        #    conn.notify(*args, **kwargs)
 
     # -------------------------------------------------------------------------
     # Data consumption
@@ -425,14 +425,14 @@ class Server(common.JSONRPCPeer):
     def basic_send_data(self, data):
         """Sends data to all clients indiscriminately"""
         method = data['source']
-        params = {k:v for k,v in data.items() if k != 'source'}
+        params = {k: v for k, v in data.items() if k != 'source'}
         self._notify_all(method, params)
 
     def send_data(self, data):
         """Send the data to the appropriate clients only"""
         channel = data['channel']
         method = data['source']
-        params = {k:v for k,v in data.items() if k != 'source'}
+        params = {k: v for k, v in data.items() if k != 'source'}
         self._notify_channel(channel, method, params)
 
     # -------------------------------------------------------------------------
@@ -478,7 +478,8 @@ class Server(common.JSONRPCPeer):
     #
     def send_influx(self, data):
         """Send reformatted wavemeter data object to influxDB server"""
-        self._log.debug("Logging data for {} from wavemeter".format(data['channel']))
+        self._log.debug(
+            "Logging data for {} from wavemeter".format(data['channel']))
         self.influx_cl.write_points(self.data2influx(data))
 
     def data2influx(self, data):
@@ -548,9 +549,12 @@ class Server(common.JSONRPCPeer):
             self.check_version(self.version, "config")
 
             numbers = []
+
             for name, channel in self.channels.items():
-                assert name == channel.name, "{}: Name doesn't match key".format(name)
-                assert channel.number not in numbers, "{}: channel number already in use".format(name)
+                assert name == channel.name, (
+                    "{}: Name doesn't match key".format(name))
+                assert channel.number not in numbers, (
+                    "{}: channel number already in use".format(name))
                 numbers.append(channel.number)
         except AssertionError as e:
             self._log.error("Error in config file: {}".format(e))

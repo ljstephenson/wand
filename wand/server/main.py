@@ -6,12 +6,15 @@ import logging
 import wand.server.server as server
 import wand.common as common
 
+
 def parse_args():
     parser = argparse.ArgumentParser("Python powered Wavemeter server")
     parser.add_argument("filename", help="JSON configuration file")
-    parser.add_argument("-s", "--simulate", help="Run as simulation", action='store_true')
+    parser.add_argument("-s", "--simulate",
+                        help="Run as simulation", action='store_true')
     common.add_verbosity_args(parser)
     return parser.parse_args()
+
 
 def main():
     args = parse_args()
@@ -26,7 +29,7 @@ def main():
 
     try:
         loop.run_forever()
-    except KeyboardInterrupt as e:  
+    except KeyboardInterrupt as e:
         log.info("Quitting due to user keyboard interrupt")
     except SystemExit as e:
         log.exception("SystemExit occurred in main loop")

@@ -24,15 +24,18 @@ __all__ = [
 
 def with_log(cls):
     """Decorator to add a logger to a class."""
-    setattr(cls, '_log', logging.getLogger(cls.__module__ + '.' + cls.__qualname__))
+    setattr(cls, '_log', logging.getLogger(
+        cls.__module__ + '.' + cls.__qualname__))
     return cls
 
 
 def add_verbosity_args(parser):
     """Add args for verbose/quiet to an argparser"""
     group = parser.add_mutually_exclusive_group()
-    group.add_argument("-v", "--verbose", help="Increase output verbosity", action="count")
-    group.add_argument("-q", "--quiet", help="Decrease output verbosity", action="count")
+    group.add_argument(
+        "-v", "--verbose", help="Increase output verbosity", action="count")
+    group.add_argument(
+        "-q", "--quiet", help="Decrease output verbosity", action="count")
 
 
 def get_verbosity_level(args):
@@ -41,10 +44,10 @@ def get_verbosity_level(args):
     level = logging.WARNING
     if args.verbose:
         new_level = (logging.WARNING - 10*args.verbose)
-        level = new_level if new_level >= logging.DEBUG else logging.DEBUG
+        level = max(new_level, logging.DEBUG)
     elif args.quiet:
         new_level = (logging.WARNING + 10*args.quiet)
-        level = new_level if new_level <= logging.CRITICAL else logging.CRITICAL
+        level = min(new_level, logging.CRITICAL)
     return level
 
 
@@ -80,6 +83,7 @@ class JSONConfigurable(object):
 
     This schema allows nested JSONConfigurables.
     """
+
     def __init__(self, cfg=None, cfg_str=None, fname=None):
         """Initialise a JSONConfigurable with the given config option. """
         # Check that only one of the initialising options was used
@@ -91,10 +95,12 @@ class JSONConfigurable(object):
             # we find a truthy value - the first 'any'
             # 'it' now consists of the values left over, so if another truthy
             # one is found we've supplied too many options
-            raise ValueError("Only one of 'cfg', 'cfg_str' and 'fname' may be supplied")
+            raise ValueError(
+                "Only one of 'cfg', 'cfg_str' and 'fname' may be supplied")
 
         if not hasattr(self, '_attrs'):
-            raise NotImplementedError("JSONConfigurable must have an `_attrs` OrderedDict")
+            raise NotImplementedError(
+                "JSONConfigurable must have an `_attrs` OrderedDict")
 
         # Set all attrs so that they exist
         self.set_blank()
@@ -133,7 +139,7 @@ class JSONConfigurable(object):
         """Save a configuration dict to a file"""
         # Default to pretty printing with indent
         if kwargs == {}:
-            kwargs = {'indent':4, 'separators':(',', ':')}
+            kwargs = {'indent': 4, 'separators': (',', ':')}
 
         if fname is not None:
             self.filename = fname
@@ -195,7 +201,8 @@ class JSONConfigurable(object):
         for attr, cls in self._attrs.items():
             if cls:
                 sub_dict = collections.OrderedDict(
-                    [(k, obj.to_dict()) for k, obj in getattr(self, attr).items()])
+                    [(k, obj.to_dict())
+                     for k, obj in getattr(self, attr).items()])
                 _dict[attr] = sub_dict
             else:
                 _dict[attr] = getattr(self, attr)
@@ -223,6 +230,7 @@ class JSONRPCPeer(JSONConfigurable):
     """
     Base class that acts as both RPC server and client.
     """
+
     def __init__(self, *args, **kwargs):
         # JSON configuration initialisation
         super().__init__(*args, **kwargs)
@@ -242,9 +250,11 @@ class JSONRPCPeer(JSONConfigurable):
         """Set up the top level logger"""
         log = logging.getLogger('wand')
         log_name = get_log_name(self.name)
-        fmt = logging.Formatter("{asctime}:{levelname}:{name}:{message}", style='{')
+        fmt = logging.Formatter(
+            "{asctime}:{levelname}:{name}:{message}", style='{')
         # Use 10kib log files, with 5 backups
-        fh = logging.handlers.RotatingFileHandler(log_name, maxBytes=100*1024, backupCount=5)
+        fh = logging.handlers.RotatingFileHandler(
+            log_name, maxBytes=100*1024, backupCount=5)
         ch = logging.StreamHandler()
         for handler in [fh, ch]:
             handler.setFormatter(fmt)
@@ -253,7 +263,7 @@ class JSONRPCPeer(JSONConfigurable):
     def add_rpc_methods(self):
         """Add the rpc methods to the dispatcher (call only during init)"""
         rpc_methods = [s for s in dir(self) if s.startswith('rpc_')
-                                            and callable(getattr(self, s))]
+                       and callable(getattr(self, s))]
         for method in rpc_methods:
             fn = getattr(self, method)
             # Remove the prefix
@@ -384,6 +394,7 @@ class JSONRPCPeer(JSONConfigurable):
 
 class JSONRPCConnection(object):
     """Represents a connection between one RPC peer and another"""
+
     def __init__(self, handler, reader, writer):
         # Handler is the callback used to handle RPC objects
         self.handler = handler
@@ -401,12 +412,13 @@ class JSONRPCConnection(object):
 
     async def request(self, method, id, params=None):
         """Make an RPC request"""
-        request = {'jsonrpc':'2.0', 'id':id, 'method':method, 'params':params}
+        request = {'jsonrpc': '2.0', 'id': id,
+                   'method': method, 'params': params}
         await self.send_object(request)
 
     async def notify(self, method, params=None):
         """Send a notification"""
-        notification = {'jsonrpc':'2.0', 'method':method, 'params':params}
+        notification = {'jsonrpc': '2.0', 'method': method, 'params': params}
         await self.send_object(notification)
 
     async def send_object(self, obj):
@@ -437,6 +449,7 @@ class JSONStreamIterator(object):
     Use with e.g. 'async for' loops. May return a list in the case of batch
     requests/responses, so the user must check for this possibility.
     """
+
     def __init__(self, reader, **kwargs):
         self.reader = reader
         self.buffer = ""
@@ -458,7 +471,8 @@ class JSONStreamIterator(object):
             try:
                 data = await self.reader.read(2**12)
                 # print("*", end='', flush=True)
-            except (ConnectionResetError, ConnectionAbortedError, BrokenPipeError) as e:
+            except (ConnectionResetError,
+                    ConnectionAbortedError, BrokenPipeError) as e:
                 # print("got a connection error")
                 data = None
             except AttributeError:

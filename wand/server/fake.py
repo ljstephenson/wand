@@ -12,6 +12,8 @@ __all__ = [
 
 
 _FREQUENCY = 10
+
+
 def set_frequency(frequency):
     global _FREQUENCY
     _FREQUENCY = frequency
@@ -20,8 +22,10 @@ def set_frequency(frequency):
 @with_log
 class FakeTask(object):
     """Fake task that mimics data production but does not access hardware"""
+
     def __init__(self, loop, queue, channel):
-        #self._log.debug("Creating Task object for channel: {}".format(channel.name))
+        # self._log.debug(
+        #     "Creating Task object for channel: {}".format(channel.name))
         self.loop = loop
         self.queue = queue
         self.channel = channel
@@ -70,7 +74,6 @@ class OSATask(FakeTask):
         # Infinite generator using two traces
         self.data = itertools.cycle(self._get_trace_data() for _ in range(2))
 
-
     def _get_data(self):
         return next(self.data)
 
@@ -79,11 +82,13 @@ class OSATask(FakeTask):
         data = np.arange(self.samples)
         data = np.asarray([self._trace(x) for x in data])
         data = np.multiply(data, scale).astype(int)
-        d = {'source':'osa', 'channel':self.channel.name, 'data':data.tolist(), 'scale':scale}
+        d = {'source': 'osa', 'channel': self.channel.name,
+             'data': data.tolist(), 'scale': scale}
         return d
 
     def _get_trace(self, centres, w):
         lorentzians = [self._get_lorentzian(x0, w) for x0 in centres]
+
         def trace(x):
             return sum([f(x)+random.random()*0.02 for f in lorentzians])
         return trace
@@ -110,7 +115,7 @@ class WavemeterTask(FakeTask):
         f = self.channel.reference
         # Choose between f, f+1MHz, Low signal, High signal
         f = random.choice([f, f + 1e-6, -3, -4], p=[0.4, 0.4, 0.1, 0.1])
-        d = {'source':'wavemeter', 'channel':self.channel.name, 'data':f}
+        d = {'source': 'wavemeter', 'channel': self.channel.name, 'data': f}
         return d
 
     def setExposure(self):

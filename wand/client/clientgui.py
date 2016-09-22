@@ -42,7 +42,7 @@ class GUIChannel(Channel):
         self._osa_curve = self._osa.plot(pen='y')
 
         self._exposure = QtGui.QSpinBox()
-        self._exposure.setRange(0, 100)
+        self._exposure.setRange(0, 1000)
         self._exposure.setSuffix(" ms")
 
         self._reference = QtGui.QDoubleSpinBox()

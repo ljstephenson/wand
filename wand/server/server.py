@@ -36,7 +36,7 @@ class Server(common.JSONRPCPeer):
     to clients.
     """
     # List of configurable attributes (maintains order when dumping config)
-    # These will all be initialised during __init__ in the call to 
+    # These will all be initialised during __init__ in the call to
     # super.__init__ because JSONRPCPeer is a JSONConfigurable
     _attrs = collections.OrderedDict([
         ('name', None),
@@ -45,11 +45,11 @@ class Server(common.JSONRPCPeer):
         ('port', None),
         ('influxdb', None),
         ('switcher', None),
+        ('switch_interval', None),
         ('osa', None),
         ('mode', None),
         ('channels', Channel),
     ])
-    switch_interval = 10
     data_frequency = {'fast':10, 'slow':1}
     log_interval = 5
 
@@ -61,6 +61,10 @@ class Server(common.JSONRPCPeer):
         self.get_switcher()
         self.configure_osa()
         self.configure_wavemeter()
+
+        # Default to switching every 5 seconds if interval not in config
+        if self.switch_interval is None:
+            self.switch_interval = 5
 
         # Initialise influxdb client
         if not self.simulate:

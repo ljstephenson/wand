@@ -48,14 +48,11 @@ class GUIChannel(Channel):
 
         self._queued = QtGui.QCheckBox("Queue")
 
-        self._exposure = QtGui.QSpinBox()
-        self._exposure.setRange(0, 1000)
-        self._exposure.setSuffix(" ms")
+        self._exposure = QtGui.QLineEdit()
+        self._exposure.setValidator(QtGui.QIntValidator(2, 1000))
 
-        self._reference = QtGui.QDoubleSpinBox()
-        self._reference.setRange(0.0, 1000000.0)
-        self._reference.setDecimals(5)
-        self._reference.setSuffix(" THz")
+        self._reference = QtGui.QLineEdit()
+        self._reference.setValidator(QtGui.QDoubleValidator(0, 1000, 5))
 
     def _gui_layout(self):
         """Place the initialised GUI items"""
@@ -68,8 +65,8 @@ class GUIChannel(Channel):
 
         self._dock.addWidget(self._plot, colspan=7)
         self._dock.addWidget(self._queued, row=1, col=1)
-        self._dock.addWidget(QtGui.QLabel("Reference Frequency"), row=1, col=3)
-        self._dock.addWidget(QtGui.QLabel("Wavemeter Exposure"), row=1, col=5)
+        self._dock.addWidget(QtGui.QLabel("Reference (THz)"), row=1, col=3)
+        self._dock.addWidget(QtGui.QLabel("Exposure (ms)"), row=1, col=5)
         self._dock.addWidget(self._reference, row=2, col=3)
         self._dock.addWidget(self._exposure, row=2, col=5)
 
@@ -99,8 +96,8 @@ class GUIChannel(Channel):
     # Callbacks
     #
     def _connect_callbacks(self):
-        self._reference.valueChanged.connect(self.referenceSlot)
-        self._exposure.valueChanged.connect(self.exposureSlot)
+        self._reference.returnPressed.connect(self.referenceSlot)
+        self._exposure.returnPressed.connect(self.exposureSlot)
         self._queued.clicked.connect(self.queueSlot)
         self.zeroAction.triggered.connect(self.zeroSlot)
         self.saveAction.triggered.connect(self.saveSlot)
@@ -110,12 +107,14 @@ class GUIChannel(Channel):
     # trigger communications with the server.
     # Previously whenever the server updated the client, the client
     # would trigger a new notification with the new value, which would loop
-    def referenceSlot(self, val):
+    def referenceSlot(self):
+        val = float(self._reference.text())
         if val != self._ref:
             self.client.request_configure_channel(self.name,
                                                   cfg={'reference': val})
 
-    def exposureSlot(self, val):
+    def exposureSlot(self):
+        val = int(self._exposure.text())
         if val != self._exp:
             self.client.request_configure_channel(self.name,
                                                   cfg={'exposure': val})
@@ -162,7 +161,7 @@ class GUIChannel(Channel):
         if val is None:
             val = 0
         self._ref = val
-        self._reference.setValue(val)
+        self._reference.setText(str(val))
 
     @property
     def exposure(self):
@@ -173,7 +172,7 @@ class GUIChannel(Channel):
         if val is None:
             val = 0
         self._exp = val
-        self._exposure.setValue(val)
+        self._exposure.setText(str(val))
 
     @property
     def osa(self):

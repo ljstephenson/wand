@@ -46,6 +46,8 @@ class GUIChannel(Channel):
         self._osa.showGrid(y=True)
         self._osa_curve = self._osa.plot(pen='y')
 
+        self._queued = QtGui.QCheckBox("Queue")
+
         self._exposure = QtGui.QSpinBox()
         self._exposure.setRange(0, 100)
         self._exposure.setSuffix(" ms")
@@ -65,6 +67,7 @@ class GUIChannel(Channel):
         self._plot.addItem(self._frequency)
 
         self._dock.addWidget(self._plot, colspan=7)
+        self._dock.addWidget(self._queued, row=1, col=1)
         self._dock.addWidget(QtGui.QLabel("Reference Frequency"), row=1, col=3)
         self._dock.addWidget(QtGui.QLabel("Wavemeter Exposure"), row=1, col=5)
         self._dock.addWidget(self._reference, row=2, col=3)
@@ -81,7 +84,7 @@ class GUIChannel(Channel):
 
     def _enable_all(self, enable):
         """Enable or disable all editable boxes"""
-        for widget in [self._reference, self._exposure]:
+        for widget in [self._reference, self._exposure, self._queued]:
             widget.setEnabled(enable)
 
     def _build_menu(self):
@@ -98,6 +101,7 @@ class GUIChannel(Channel):
     def _connect_callbacks(self):
         self._reference.valueChanged.connect(self.referenceSlot)
         self._exposure.valueChanged.connect(self.exposureSlot)
+        self._queued.clicked.connect(self.queueSlot)
         self.zeroAction.triggered.connect(self.zeroSlot)
         self.saveAction.triggered.connect(self.saveSlot)
 
@@ -130,6 +134,10 @@ class GUIChannel(Channel):
         """Set the current value as reference (zeros the detuning)"""
         if self.frequency:
             self.referenceSlot(self.frequency)
+
+    def queueSlot(self):
+        """Add/remove the channel from server queue cycle"""
+        self.client.request_queue(self.name, self.queued)
 
     # -------------------------------------------------------------------------
     # Properties
@@ -251,10 +259,30 @@ class GUIChannel(Channel):
     @locked.setter
     def locked(self, val):
         self._locked = val
-        if val:
-            self._plot.setBackground(QtGui.QColor(0, 0, 0))
+
+        self._plot.setBackground(self.bg)
+
+    @property
+    def queued(self):
+        return self._queued.isChecked()
+
+    @queued.setter
+    def queued(self, val):
+        if val ^ self.queued:
+            self._queued.toggle()
+
+        self._plot.setBackground(self.bg)
+
+    @property
+    def bg(self):
+        bright = QtGui.QColor(0, 0, 0)
+        dim = QtGui.QColor(50, 50, 50)
+
+        if self.locked or (not self.server.locked and self.queued):
+            return bright
         else:
-            self._plot.setBackground(self.server.color)
+            return dim
+
 
 @with_log
 class GUIServer(QtGui.QToolBar):

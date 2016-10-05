@@ -7,7 +7,7 @@ scripts = [
 
 setup(
     name='wand',
-    version='2.1.0',
+    version='2.1.1',
     url='https://github.com/ljstephenson/wand',
     author='Laurent Stephenson',
     packages=find_packages(),

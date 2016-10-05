@@ -27,14 +27,14 @@ class BaseConnection(object):
 
     def request(self, _id, method, params=None, cb=None):
         """Make an RPC request"""
-        request = {'jsonrpc':'2.0', 'id':_id, 'method':method}
+        request = {'jsonrpc': '2.0', 'id': _id, 'method': method}
         if params:
             request['params'] = params
         self.send_object(request)
 
     def notify(self, method, params=None):
         """Send a notification"""
-        notification = {'jsonrpc':'2.0', 'method':method}
+        notification = {'jsonrpc': '2.0', 'method': method}
         if params:
             notification['params'] = params
         self.send_object(notification)
@@ -52,6 +52,7 @@ class RPCPeer(JSONConfigurable):
     """
     Base class that acts as both RPC server and client.
     """
+
     def __init__(self, *args, **kwargs):
         # JSON configuration initialisation
         super().__init__(*args, **kwargs)
@@ -69,9 +70,11 @@ class RPCPeer(JSONConfigurable):
         """Set up the top level logger"""
         log = logging.getLogger('wand')
         log_name = get_log_name(self.name)
-        fmt = logging.Formatter("{asctime}:{levelname}:{name}:{message}", style='{')
+        fmt = logging.Formatter(
+            "{asctime}:{levelname}:{name}:{message}", style='{')
         # Use 10kib log files, with 5 backups
-        fh = logging.handlers.RotatingFileHandler(log_name, maxBytes=100*1024, backupCount=5)
+        fh = logging.handlers.RotatingFileHandler(
+            log_name, maxBytes=100*1024, backupCount=5)
         ch = logging.StreamHandler()
         for handler in [fh, ch]:
             handler.setFormatter(fmt)
@@ -80,7 +83,7 @@ class RPCPeer(JSONConfigurable):
     def add_rpc_methods(self):
         """Add the rpc methods to the dispatcher (call only during init)"""
         rpc_methods = [s for s in dir(self) if s.startswith('rpc_')
-                                            and callable(getattr(self, s))]
+                       and callable(getattr(self, s))]
         for method in rpc_methods:
             fn = getattr(self, method)
             # Remove the prefix
@@ -221,6 +224,7 @@ class Decoder(QtCore.QObject):
 @with_log
 class RPCClient(RPCPeer):
     """Handles making the connections as well"""
+
     def server_connect(self, server):
         s = self.servers.get(server)
         sock = QtNetwork.QTcpSocket()

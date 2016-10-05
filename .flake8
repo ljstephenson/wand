@@ -1,0 +1,17 @@
+[flake8]
+exclude =
+    .git,
+    __pycache__,
+    wand/resources,
+    # wlmconstants was generated from a .h file, ignore
+    # formatting 'errors' within it
+    wand/server/wlmconstants.py,
+    # __init__.py has an import *
+    wand/common/__init__.py
+ignore = 
+    # W503 suggests placing binary operators before newlines:
+    # that's hideous and wrong so ignore it
+    W503,
+    # E226 is space around arithmetic operator - assume it's been
+    # coded by a reasonable adult for readability
+    E226

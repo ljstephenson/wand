@@ -39,6 +39,7 @@ class ClientBackend(ThreadClient):
             s.client = self
             for c in s.channels.values():
                 c.client = self
+                c.server = s
                 self.channels[c.name] = c
                 self.name_map[c.name] = c.alias
                 self.aliases[c.alias] = c.name
@@ -82,25 +83,22 @@ class ClientBackend(ThreadClient):
             c.from_json(cfg)
 
     def rpc_locked(self, server, channel):
-        # Show locking of stated channel and clear all others associated with
-        # this server
-        locked = self.channels.get(channel)
-        if locked is not None:
-            # Locked channel may not be shown on this client at all
-            locked.set_locked(True)
-
         s = self.servers.get(server)
         s.locked = channel
-        unlocked = [self.channels.get(c) for c in s.channels if c != channel]
-        for c in unlocked:
-            c.set_locked(False)
+        for c in s.channels.values():
+            c.locked = (c.name == channel)
 
     def rpc_unlocked(self, server):
         s = self.servers.get(server)
         s.locked = False
-        unlocked = [self.channels.get(c) for c in s.channels]
-        for c in unlocked:
-            c.set_locked(False)
+        for c in s.channels.values():
+            c.locked = False
+
+    def rpc_queue(self, server, channels):
+        s = self.servers.get(server)
+        channels = set(channels)
+        for c in s.channels.values():
+            c.queued = c.name in channels
 
     def rpc_paused(self, server, pause):
         self.servers.get(server).pause = pause
@@ -108,13 +106,14 @@ class ClientBackend(ThreadClient):
     def rpc_fast(self, server, fast):
         self.servers.get(server).fast = fast
 
-    def rpc_server_state(self, server, pause, lock, fast):
+    def rpc_server_state(self, server, pause, lock, queue, fast):
         if lock:
             self.rpc_locked(server, lock)
         else:
             self.rpc_unlocked(server)
         self.rpc_paused(server, pause)
         self.rpc_fast(server, fast)
+        self.rpc_queue(server, queue)
 
     def rpc_uptime(self, server, uptime):
         self.servers.get(server).uptime = uptime
@@ -153,12 +152,12 @@ class ClientBackend(ThreadClient):
     #
     def request_echo_channel_config(self, channel):
         method = "echo_channel_config"
-        params = {"channel":channel}
+        params = {"channel": channel}
         self._channel_request(channel, method, params)
 
     def request_lock(self, channel):
         method = "lock"
-        params = {"channel":channel}
+        params = {"channel": channel}
         self._channel_request(channel, method, params)
 
     def request_unlock(self, channel):
@@ -166,14 +165,19 @@ class ClientBackend(ThreadClient):
         params = {}
         self._channel_request(channel, method, params)
 
+    def request_queue(self, channel, add=True):
+        method = "queue"
+        params = {"channel": channel, "add":add}
+        self._channel_request(channel, method, params)
+
     def request_configure_channel(self, channel, cfg):
         method = "configure_channel"
-        params = {"channel":channel, "cfg":cfg}
+        params = {"channel": channel, "cfg": cfg}
         self._channel_request(channel, method, params)
 
     def request_save_channel_settings(self, channel):
         method = "save_channel_settings"
-        params = {"channel":channel}
+        params = {"channel": channel}
         self._channel_request(channel, method, params)
 
     def request_register_client(self, server):
@@ -183,22 +187,22 @@ class ClientBackend(ThreadClient):
                 self.channels[c].from_json(cfg)
         s = self.servers.get(server)
         method = "register_client"
-        params = {"client":self.name, "channels":list(s.channels)}
+        params = {"client": self.name, "channels": list(s.channels)}
         self._server_request(server, method, params, cb=update_channels)
 
     def request_echo(self, server, string):
         method = "echo"
-        params = {"s":string}
+        params = {"s": string}
         self._server_request(server, method, params)
 
     def request_pause(self, server, pause):
         method = "pause"
-        params = {"pause":pause}
+        params = {"pause": pause}
         self._server_request(server, method, params)
 
     def request_fast(self, server, fast):
         method = "fast"
-        params = {"fast":fast}
+        params = {"fast": fast}
         self._server_request(server, method, params)
 
     def request_version(self, server):

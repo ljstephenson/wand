@@ -18,6 +18,8 @@ NO_OPTIONS = 0
 
 # Approx collection frequency
 _FREQUENCY = 10
+
+
 def set_frequency(frequency):
     global _FREQUENCY
     _FREQUENCY = frequency
@@ -31,6 +33,7 @@ RATE = 1.25e6
 TIMEOUT = 0.1
 MIN_V = -1.0
 MAX_V = 1.0
+
 
 def channel_setup(config):
     """Set up the channels to be used in the DAQ card"""
@@ -46,17 +49,19 @@ class OSATask(PyDAQmx.Task):
     """
     Task object for collecting data from the Optical Spectrum Analyser
     """
+
     def __init__(self, loop, queue, channel):
         """
         Set up the Task in the DAQ card ready for use
         """
         super().__init__()
 
-        self._log.debug("Creating Task object for channel: {}".format(channel.name))
+        self._log.debug(
+            "Creating Task object for channel: {}".format(channel.name))
         self.loop = loop
         self.queue = queue
         self.channel = channel
-    
+
         # Blue/Red lasers require using different etalons, so have different
         # analog inputs to the DAQ card
         if self.channel.blue:
@@ -66,13 +71,15 @@ class OSATask(PyDAQmx.Task):
             AI = AI_RED
             TRIG = TRIG_RED
 
-        # We want to measure voltage in range MIN_V to MAX_V, with a finite  
+        # We want to measure voltage in range MIN_V to MAX_V, with a finite
         # number of samples taken at RATE, triggering collection on the
         # falling edge of the trigger channel
-        self.CreateAIVoltageChan(AI, '', PyDAQmx.DAQmx_Val_NRSE, MIN_V, MAX_V,
-                                 PyDAQmx.DAQmx_Val_Volts, None)
-        self.CfgSampClkTiming('', RATE, PyDAQmx.DAQmx_Val_Rising,
-                              PyDAQmx.DAQmx_Val_FiniteSamps, SAMPLES)
+        self.CreateAIVoltageChan(
+            AI, '', PyDAQmx.DAQmx_Val_NRSE, MIN_V, MAX_V,
+            PyDAQmx.DAQmx_Val_Volts, None)
+        self.CfgSampClkTiming(
+            '', RATE, PyDAQmx.DAQmx_Val_Rising,
+            PyDAQmx.DAQmx_Val_FiniteSamps, SAMPLES)
         self.CfgDigEdgeStartTrig(TRIG, PyDAQmx.DAQmx_Val_Falling)
 
         # We have to manualy reset the trigger by restarting the task -
@@ -81,8 +88,8 @@ class OSATask(PyDAQmx.Task):
         self.TaskControl(PyDAQmx.DAQmx_Val_Task_Commit)
 
         # Register callbacks
-        self.AutoRegisterEveryNSamplesEvent(PyDAQmx.DAQmx_Val_Acquired_Into_Buffer,
-                                            SAMPLES, NO_OPTIONS)
+        self.AutoRegisterEveryNSamplesEvent(
+            PyDAQmx.DAQmx_Val_Acquired_Into_Buffer, SAMPLES, NO_OPTIONS)
         self.AutoRegisterDoneEvent(NO_OPTIONS)
 
     def EveryNCallback(self):
@@ -92,8 +99,9 @@ class OSATask(PyDAQmx.Task):
         data = np.zeros(SAMPLES)
         _read = np.int32()
         try:
-            self.ReadAnalogF64(SAMPLES, TIMEOUT, PyDAQmx.DAQmx_Val_GroupByScanNumber, data,
-                            SAMPLES, ctypes.byref(np.ctypeslib.as_ctypes(_read)), None)
+            self.ReadAnalogF64(
+                SAMPLES, TIMEOUT, PyDAQmx.DAQmx_Val_GroupByScanNumber, data,
+                SAMPLES, ctypes.byref(np.ctypeslib.as_ctypes(_read)), None)
         except Exception as e:
             self._log.error("Read Error: {}".format(e))
 
@@ -104,8 +112,9 @@ class OSATask(PyDAQmx.Task):
         # Multiply by 10000 and cast to int to truncate data
         scale = 1e4
         data = np.multiply(data, scale).astype(int)
-        d = {'source':'osa', 'channel':self.channel.name, 'data':data.tolist(), 'scale':scale}
-    
+        d = {'source': 'osa', 'channel': self.channel.name,
+             'data': data.tolist(), 'scale': scale}
+
         if not self.loop.is_closed():
             self.loop.create_task(self.queue.put(d))
 

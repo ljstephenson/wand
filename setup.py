@@ -5,8 +5,9 @@ scripts = [
     "wand_client=wand.client.main:main",
 ]
 
-setup(name='wand',
-    version='2.0.2',
+setup(
+    name='wand',
+    version='2.1.0',
     url='https://github.com/ljstephenson/wand',
     author='Laurent Stephenson',
     packages=find_packages(),
@@ -19,6 +20,6 @@ setup(name='wand',
         'PyDAQmx>=1',
         'quamash',
     ],
-    package_data={'wand':['resources/*.svg', 'resources/*.json']},
+    package_data={'wand': ['resources/*.svg', 'resources/*.json']},
     include_package_data=True
 )

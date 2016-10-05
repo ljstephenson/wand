@@ -83,25 +83,22 @@ class ClientBackend(ThreadClient):
             c.from_json(cfg)
 
     def rpc_locked(self, server, channel):
-        # Show locking of stated channel and clear all others associated with
-        # this server
-        locked = self.channels.get(channel)
-        if locked is not None:
-            # Locked channel may not be shown on this client at all
-            locked.locked = True
-
         s = self.servers.get(server)
         s.locked = channel
-        unlocked = [self.channels.get(c) for c in s.channels if c != channel]
-        for c in unlocked:
-            c.locked = False
+        for c in s.channels.values():
+            c.locked = (c.name == channel)
 
     def rpc_unlocked(self, server):
         s = self.servers.get(server)
         s.locked = False
-        unlocked = [self.channels.get(c) for c in s.channels]
-        for c in unlocked:
+        for c in s.channels.values():
             c.locked = False
+
+    def rpc_queue(self, server, channels):
+        s = self.servers.get(server)
+        channels = set(channels)
+        for c in s.channels.values():
+            c.queued = c.name in channels
 
     def rpc_paused(self, server, pause):
         self.servers.get(server).pause = pause
@@ -109,13 +106,14 @@ class ClientBackend(ThreadClient):
     def rpc_fast(self, server, fast):
         self.servers.get(server).fast = fast
 
-    def rpc_server_state(self, server, pause, lock, fast):
+    def rpc_server_state(self, server, pause, lock, queue, fast):
         if lock:
             self.rpc_locked(server, lock)
         else:
             self.rpc_unlocked(server)
         self.rpc_paused(server, pause)
         self.rpc_fast(server, fast)
+        self.rpc_queue(server, queue)
 
     def rpc_uptime(self, server, uptime):
         self.servers.get(server).uptime = uptime
@@ -165,6 +163,11 @@ class ClientBackend(ThreadClient):
     def request_unlock(self, channel):
         method = "unlock"
         params = {}
+        self._channel_request(channel, method, params)
+
+    def request_queue(self, channel, add=True):
+        method = "queue"
+        params = {"channel": channel, "add":add}
         self._channel_request(channel, method, params)
 
     def request_configure_channel(self, channel, cfg):

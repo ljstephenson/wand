@@ -66,9 +66,12 @@ class Server(common.JSONRPCPeer):
         if not self.simulate:
             self.influx_cl = InfluxDBClient(**self.influxdb)
 
-        # Generator for cycling through configured channels infinitely
-        self.ch_gen = itertools.cycle(
-            name for name, ch in self.channels.items() if ch.active)
+        self.queued = [name for name, ch in self.channels.items() if ch.active]
+        # Default to all channels if none set as active in config
+        if not self.queued:
+            self.queued = list(self.channels)
+        # Generator for cycling through channels infinitely
+        self.ch_gen = itertools.cycle(self.queued)
 
         self.data_q = asyncio.Queue()
 
@@ -240,6 +243,21 @@ class Server(common.JSONRPCPeer):
         if not self.pause:
             self._next = self.loop.call_soon(self.select)
 
+    def rpc_queue(self, channel, add=True):
+        """Add/remove a channel from the queue cycle"""
+        if add:
+            self.queued.append(channel)
+            self.queued.sort()
+        else:
+            self.queued.remove(channel)
+
+        if not self.queued:
+            # If queue is empty, refill with all channels
+            self.queued = list(self.channels)
+
+        self.ch_gen = itertools.cycle(self.queued)
+        self.loop.call_soon(self.notify_queue)
+
     def rpc_pause(self, pause=True):
         if self._next:
             self.loop.call_soon(self._next.cancel)
@@ -340,6 +358,11 @@ class Server(common.JSONRPCPeer):
         params = {"server": self.name}
         self._notify_all(method, params)
 
+    def notify_queue(self):
+        method = "queue"
+        params = {"server": self.name, "channels": list(self.queued)}
+        self._notify_all(method, params)
+
     def notify_paused(self):
         method = "paused"
         params = {"server": self.name, "pause": self.pause}
@@ -370,6 +393,7 @@ class Server(common.JSONRPCPeer):
             'server': self.name,
             'pause': self.pause,
             'lock': self.locked,
+            'queue': self.queued,
             'fast': self.fast
         }
         if client is not None:

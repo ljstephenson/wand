@@ -38,7 +38,7 @@ class GUIChannel(Channel):
         self._frequency = pg.LabelItem("")
         self._frequency.setText("-", size="12pt")
         self._alias = pg.LabelItem("")
-        self._alias.setText("-", size="32pt")
+        self._alias.setText("Name", size="32pt")
 
         self._osa = pg.PlotItem()
         self._osa.hideAxis('bottom')
@@ -49,7 +49,7 @@ class GUIChannel(Channel):
         self._queued = QtGui.QCheckBox("Queue")
 
         self._exposure = QtGui.QSpinBox()
-        self._exposure.setRange(0, 100)
+        self._exposure.setRange(0, 1000)
         self._exposure.setSuffix(" ms")
 
         self._reference = QtGui.QDoubleSpinBox()
@@ -59,12 +59,12 @@ class GUIChannel(Channel):
 
     def _gui_layout(self):
         """Place the initialised GUI items"""
-        self._plot.addItem(self._osa, colspan=2)
+        self._plot.addItem(self._osa, colspan=3)
         self._plot.nextRow()
-        self._plot.addItem(self._detuning, colspan=2)
+        self._plot.addItem(self._detuning, colspan=3)
         self._plot.nextRow()
         self._plot.addItem(self._alias)
-        self._plot.addItem(self._frequency)
+        self._plot.addItem(self._frequency, colspan=2)
 
         self._dock.addWidget(self._plot, colspan=7)
         self._dock.addWidget(self._queued, row=1, col=1)

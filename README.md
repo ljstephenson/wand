@@ -1,14 +1,14 @@
 # WAnD - Wavemeter Analysis 'n' Display
 
 A laser diagnostic system for Oxford Ion Trappers, reading from a National
-Instruments Data Acquisition Card and a High Finesse Wavelength Meter. 
+Instruments Data Acquisition Card and a High Finesse Wavelength Meter.
 
 ## Getting Started
 
 ### Prerequisites
 
 We'll be creating this within a conda environment to keep it compartmentalised.
-Make sure you have anaconda installed. 
+Make sure you have anaconda installed.
 
 You should check if you have already added the m-labs (artiq) conda channel to
 your config - it isn't required but will affect installation:
@@ -54,11 +54,20 @@ and don't want to develop it:
 pip install https://github.com/ljstephenson/wand/zipball/master
 ```
 
-This will install all the other dependencies at the same time. Upgrades can be
-performed by adding the `--upgrade` option to the pip command.
+This will install all the other dependencies at the same time.
+
+### Upgrading
+
+Upgrades can be performed by adding the `--upgrade` option to the above pip
+command, while in the conda environment.
+
+### Developing
 
 If you are going to be developing WAnD, you want to have an editable
-installation. Clone the repo and install it:
+installation. Follow the instructions as above until you are in your conda
+environment, then:
+
+Clone the repo and install it:
 ```
 git clone https://github.com/ljstephenson/wand <source-directory>
 pip install -e <source-directory>

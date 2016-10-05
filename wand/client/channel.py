@@ -27,13 +27,8 @@ class Channel(common.JSONConfigurable):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.client = None
+        self.server = None
 
     @property
     def detuning(self):
         return (self.frequency - self.reference)
-
-    def lock(self):
-        pass
-
-    def unlock(self):
-        pass

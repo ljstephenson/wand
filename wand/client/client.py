@@ -39,6 +39,7 @@ class ClientBackend(ThreadClient):
             s.client = self
             for c in s.channels.values():
                 c.client = self
+                c.server = s
                 self.channels[c.name] = c
                 self.name_map[c.name] = c.alias
                 self.aliases[c.alias] = c.name
@@ -87,20 +88,20 @@ class ClientBackend(ThreadClient):
         locked = self.channels.get(channel)
         if locked is not None:
             # Locked channel may not be shown on this client at all
-            locked.set_locked(True)
+            locked.locked = True
 
         s = self.servers.get(server)
         s.locked = channel
         unlocked = [self.channels.get(c) for c in s.channels if c != channel]
         for c in unlocked:
-            c.set_locked(False)
+            c.locked = False
 
     def rpc_unlocked(self, server):
         s = self.servers.get(server)
         s.locked = False
         unlocked = [self.channels.get(c) for c in s.channels]
         for c in unlocked:
-            c.set_locked(False)
+            c.locked = False
 
     def rpc_paused(self, server, pause):
         self.servers.get(server).pause = pause

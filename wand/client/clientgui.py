@@ -2,7 +2,7 @@ import collections
 import pyqtgraph as pg
 import pyqtgraph.dockarea as dock
 
-from . import QtGui
+from . import QtGui, QtCore
 
 from wand.client.client import ClientBackend
 from wand.client.channel import Channel
@@ -13,16 +13,21 @@ from wand.common import with_log
 @with_log
 class GUIChannel(Channel):
     def __init__(self, *args, **kwargs):
-
         # GUI items must be initialised before values are set in super() call
         self._gui_init()
         super().__init__(*args, **kwargs)
 
         # This has to go after the name has been initialised for the dock title
         self._dock = dock.Dock(self.name, autoOrientation=False)
+        self._build_menu()
         self._gui_layout()
         self._connect_callbacks()
         self._enable_all(False)
+
+        for label in [self._detuning, self._alias, self._frequency]:
+            label.contextMenuEvent = lambda ev: self.menu.popup(QtGui.QCursor.pos())
+            label.mousePressEvent = lambda ev: None
+            label.mouseReleaseEvent = lambda ev: self.lockSlot()
 
     def _gui_init(self):
         """All GUI inititialisation (except dock) goes here"""
@@ -50,9 +55,6 @@ class GUIChannel(Channel):
         self._reference.setDecimals(5)
         self._reference.setSuffix(" THz")
 
-        self._lock = QtGui.QRadioButton("View")
-        self._save = QtGui.QPushButton("Save Settings")
-
     def _gui_layout(self):
         """Place the initialised GUI items"""
         self._plot.addItem(self._osa, colspan=2)
@@ -63,10 +65,8 @@ class GUIChannel(Channel):
         self._plot.addItem(self._frequency)
 
         self._dock.addWidget(self._plot, colspan=7)
-        self._dock.addWidget(self._lock, row=1, col=1)
         self._dock.addWidget(QtGui.QLabel("Reference Frequency"), row=1, col=3)
         self._dock.addWidget(QtGui.QLabel("Wavemeter Exposure"), row=1, col=5)
-        self._dock.addWidget(self._save, row=2, col=1)
         self._dock.addWidget(self._reference, row=2, col=3)
         self._dock.addWidget(self._exposure, row=2, col=5)
 
@@ -81,50 +81,55 @@ class GUIChannel(Channel):
 
     def _enable_all(self, enable):
         """Enable or disable all editable boxes"""
-        for widget in [self._reference, self._exposure,
-                       self._lock, self._save]:
+        for widget in [self._reference, self._exposure]:
             widget.setEnabled(enable)
+
+    def _build_menu(self):
+        self.menu = QtGui.QMenu()
+        self.zeroAction = QtGui.QAction("Set reference to current", self._dock)
+        self.saveAction = QtGui.QAction("Save Settings", self._dock)
+
+        self.menu.addAction(self.zeroAction)
+        self.menu.addAction(self.saveAction)
 
     # -------------------------------------------------------------------------
     # Callbacks
     #
     def _connect_callbacks(self):
-        self._lock.clicked[bool].connect(self.toggle_lock)
-        self._save.clicked.connect(self.save)
-        self._reference.valueChanged.connect(self.ref)
-        self._exposure.valueChanged.connect(self.exp)
+        self._reference.valueChanged.connect(self.referenceSlot)
+        self._exposure.valueChanged.connect(self.exposureSlot)
+        self.zeroAction.triggered.connect(self.zeroSlot)
+        self.saveAction.triggered.connect(self.saveSlot)
 
     # Note that the value changed callbacks check that the new value is
     # different from the stored value - this mean that only user inputs
     # trigger communications with the server.
     # Previously whenever the server updated the client, the client
     # would trigger a new notification with the new value, which would loop
-    def ref(self, val):
+    def referenceSlot(self, val):
         if val != self._ref:
             self.client.request_configure_channel(self.name,
                                                   cfg={'reference': val})
 
-    def exp(self, val):
+    def exposureSlot(self, val):
         if val != self._exp:
             self.client.request_configure_channel(self.name,
                                                   cfg={'exposure': val})
 
-    def save(self):
+    def saveSlot(self):
         self.client.request_save_channel_settings(self.name)
 
-    def toggle_lock(self, locked):
-        if locked:
+    def lockSlot(self):
+        # if NOT locked, request the lock and let the server handle it
+        if not self.locked:
             self.client.request_lock(self.name)
         else:
             self.client.request_unlock(self.name)
 
-    # -------------------------------------------------------------------------
-    # Switcher locked/unlocked
-    #
-    def set_locked(self, locked):
-        """Called when channel is locked/unlocked by another client"""
-        if locked ^ self._lock.isChecked():
-            self._lock.toggle()
+    def zeroSlot(self):
+        """Set the current value as reference (zeros the detuning)"""
+        if self.frequency:
+            self.referenceSlot(self.frequency)
 
     # -------------------------------------------------------------------------
     # Properties
@@ -178,7 +183,7 @@ class GUIChannel(Channel):
     def frequency(self, val):
         error = None
         if val is None:
-            val = 0
+            self._f = None
         elif val == -3:
             error = "Low"
         elif val == -4:
@@ -239,6 +244,17 @@ class GUIChannel(Channel):
     def dock(self):
         return self._dock
 
+    @property
+    def locked(self):
+        return self._locked
+
+    @locked.setter
+    def locked(self, val):
+        self._locked = val
+        if val:
+            self._plot.setBackground(QtGui.QColor(0, 0, 0))
+        else:
+            self._plot.setBackground(self.server.color)
 
 @with_log
 class GUIServer(QtGui.QToolBar):
@@ -301,6 +317,14 @@ class GUIServerLite(Server):
     def __init__(self, *args, **kwargs):
         self._attrs.update({"channels": GUIChannel})
         super().__init__(*args, **kwargs)
+
+    @property
+    def color(self):
+        """Background color for channels to use"""
+        if not self.locked:
+            return QtGui.QColor(0, 0, 0)
+        else:
+            return QtGui.QColor(50, 50, 50)
 
 
 @with_log

@@ -107,12 +107,13 @@ class WavemeterTask(FakeTask):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.exposure = self.channel.exposure
+        self.f = self.channel.reference
 
     def _get_data(self):
         if self.exposure != self.channel.exposure:
             self.setExposure()
 
-        f = self.channel.reference
+        f = self.f
         # Choose between f, f+1MHz, Low signal, High signal
         f = random.choice([f, f + 1e-6, -3, -4], p=[0.4, 0.4, 0.1, 0.1])
         d = {'source': 'wavemeter', 'channel': self.channel.name, 'data': f}

@@ -51,6 +51,10 @@ class FakeTask(object):
         self._active = False
         self.loop.call_soon_threadsafe(self._future.cancel)
 
+    def SingleShot(self):
+        self._active = False
+        self._future = self.loop.call_soon(self._put_data)
+
     def ClearTask(self):
         pass
 
@@ -69,6 +73,7 @@ class OSATask(FakeTask):
         n = int(self.samples/spacing - 0.5)
         centres = [(i+0.5)*spacing for i in range(n+1)]
 
+        random.seed()
         self._trace = self._get_trace(centres, width)
 
         # Infinite generator using two traces
@@ -108,17 +113,24 @@ class WavemeterTask(FakeTask):
         super().__init__(*args, **kwargs)
         self.exposure = self.channel.exposure
         self.f = self.channel.reference
+        random.seed()
 
     def _get_data(self):
         if self.exposure != self.channel.exposure:
             self.setExposure()
 
-        f = self.f
-        # Choose between f, f+1MHz, Low signal, High signal
-        f = random.choice([f, f + 1e-6, -3, -4], p=[0.4, 0.4, 0.1, 0.1])
+        f = self._get_frequency()
         d = {'source': 'wavemeter', 'channel': self.channel.name, 'data': f}
         return d
+
+    def _get_frequency(self):
+        f = self.f
+        # Choose between f, f+1MHz, Low signal, High signal
+        return random.choice([f, f + 1e-6, -3, -4], p=[0.4, 0.4, 0.1, 0.1])
 
     def setExposure(self):
         self.exposure = self.channel.exposure
         self._log.debug("Changing exposure time")
+
+    def MeasureOnce(self):
+        return self._get_frequency()

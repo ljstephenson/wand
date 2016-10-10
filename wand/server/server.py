@@ -52,6 +52,7 @@ class Server(common.JSONRPCPeer):
     ])
     data_frequency = {'fast': 10, 'slow': 1}
     log_interval = 5
+    interleave_interval = 1
 
     def __init__(self, simulate=False, **kwargs):
         super().__init__(**kwargs)
@@ -209,6 +210,27 @@ class Server(common.JSONRPCPeer):
         if not self.locked:
             self._next = self.loop.call_later(
                 self.switch_interval, self.select)
+        else:
+            self._next = self.loop.call_later(
+                self.interleave_interval, self.interleave)
+
+    def interleave(self):
+        """While locked, we want to periodically monitor the other channels"""
+        if self.locked:
+            self._next = None
+            self.cancel_tasks()
+            channel = next(self.ch_gen)
+            c = self.channels[channel]
+
+            self._log.debug("Interleaving channel: {}".format(channel))
+            self.switch(c.number)
+            self.new_tasks(c)
+            self.single_shot_tasks()
+
+            self._next = self.loop.call_later(
+                10e-3, self.select, self.locked)
+        # else clause should be a no-op: implies that an interleaving was
+        # requested, but the server was unlocked before it was needed
 
     def setup_data_rate(self):
         speed = 'fast' if self.fast else 'slow'
@@ -290,6 +312,23 @@ class Server(common.JSONRPCPeer):
 
     def rpc_get_name(self):
         return self.name
+
+    def rpc_get_channel_frequency(self, channel):
+        c = self.channels.get(channel)
+
+        if self._next:
+            self.loop.call_soon(self._next.cancel)
+
+        t = wavemeter.WavemeterTask(self.loop, self.data_q, c)
+        self.switch(c.number)
+        frequency = t.MeasureOnce()
+        t.StopTask()
+
+        if self.locked:
+            self._next = self.loop.call_soon(self.select, self.locked)
+        else:
+            self._next = self.loop.call_soon(self.select)
+        return frequency
 
     def rpc_configure_channel(self, channel, cfg):
         c = self.channels.get(channel)
@@ -479,6 +518,10 @@ class Server(common.JSONRPCPeer):
     def start_tasks(self):
         for t in self.tasks.values():
             t.StartTask()
+
+    def single_shot_tasks(self):
+        for t in self.tasks.values():
+            t.SingleShot()
 
     def cancel_tasks(self):
         while self.tasks:

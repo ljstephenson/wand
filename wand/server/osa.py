@@ -118,6 +118,7 @@ class OSATask(PyDAQmx.Task):
         if not self.loop.is_closed():
             self.loop.create_task(self.queue.put(d))
 
+        if self.continuous and not self.loop.is_closed():
             # Restart task so that we have continuous acquisition
             self.RestartTask()
 
@@ -138,10 +139,18 @@ class OSATask(PyDAQmx.Task):
     def _start(self):
         """Wraps to catch exceptions, but note that this isn't public"""
         try:
-            self.StartTask()
+            super().StartTask()
         except DAQError:
             # Task specified is invalid i.e. we've switched away
             pass
+
+    def StartTask(self):
+        self.continuous = True
+        super().StartTask()
+
+    def SingleShot(self):
+        self.continuous = False
+        super().StartTask()
 
     def DoneCallback(self, status):
         self._log.debug("Done: Status: {}".format(status))

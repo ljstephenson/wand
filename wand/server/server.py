@@ -293,6 +293,10 @@ class Server(common.JSONRPCPeer):
 
     def rpc_configure_channel(self, channel, cfg):
         c = self.channels.get(channel)
+        if "exposure" in cfg:
+            clamp = lambda n, minn, maxn: max(min(maxn, n), minn)
+            cfg["exposure"] = clamp(cfg["exposure"],
+                                    wavemeter.EXP_MIN, wavemeter.EXP_MAX)
         if c is not None:
             c.from_dict(cfg)
             self.loop.call_soon(self.notify_refresh_channel, channel)

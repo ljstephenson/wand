@@ -49,7 +49,7 @@ class GUIChannel(Channel):
         self._queued = QtGui.QCheckBox("Queue")
 
         self._exposure = QtGui.QLineEdit()
-        self._exposure.setValidator(QtGui.QIntValidator(2, 1000))
+        self._exposure.setValidator(QtGui.QIntValidator(0, 9999))
 
         self._reference = QtGui.QLineEdit()
         self._reference.setValidator(QtGui.QDoubleValidator(0, 1000, 5))

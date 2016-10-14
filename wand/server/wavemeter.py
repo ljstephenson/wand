@@ -6,7 +6,7 @@ import ctypes
 from wand.common import with_log
 from wand.server.wlmconstants import (
     cMeasurement, cInstNotification, cCtrlMeasurementTriggerSuccess,
-    cNotifyInstallCallback, cNotifyRemoveCallback
+    cNotifyInstallCallback, cNotifyRemoveCallback, cExpoMin, cExpoMax
 )
 
 __all__ = [
@@ -40,6 +40,7 @@ def init(as_switcher):
 
     lib.GetFrequencyNum.restype = ctypes.c_double
     lib.Instantiate.restype = ctypes.c_long
+    lib.GetExposureRange.restype = ctypes.c_long
 
     # Turn off auto-switcher mode
     lib.SetSwitcherMode(ctypes.c_long(0))
@@ -53,6 +54,10 @@ def init(as_switcher):
 
     # Set to measuring normally
     lib.Operation(cMeasurement)
+
+    global EXP_MAX, EXP_MIN
+    EXP_MIN = lib.GetExposureRange(ctypes.c_long(cExpoMin))
+    EXP_MAX = lib.GetExposureRange(ctypes.c_long(cExpoMax))
 
 
 def switch(number=1):

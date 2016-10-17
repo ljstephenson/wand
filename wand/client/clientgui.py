@@ -26,8 +26,8 @@ class GUIChannel(Channel):
 
         for label in [self._detuning, self._alias, self._frequency]:
             label.contextMenuEvent = lambda ev: self.menu.popup(QtGui.QCursor.pos())
-            label.mousePressEvent = lambda ev: None
-            label.mouseReleaseEvent = lambda ev: self.lockSlot()
+            label.mousePressEvent = self.clickSlot
+            label.mouseReleaseEvent = lambda ev: None
 
     def _gui_init(self):
         """All GUI inititialisation (except dock) goes here"""
@@ -137,6 +137,19 @@ class GUIChannel(Channel):
     def queueSlot(self):
         """Add/remove the channel from server queue cycle"""
         self.client.request_queue(self.name, self.queued)
+
+    def clickSlot(self, ev):
+        """Find out which mouse button was pressed, take appropriate action"""
+        if ev.button() & QtCore.Qt.LeftButton:
+            self.lockSlot()
+        elif ev.button() & QtCore.Qt.RightButton:
+            # Handled by contextMenuEvent
+            pass
+        elif ev.button() & QtCore.Qt.MidButton:
+            # Have to toggle the state of the checkbox before sending request,
+            # unlike when the checkbox itself is pressed
+            self.queued = not self.queued
+            self.queueSlot()
 
     # -------------------------------------------------------------------------
     # Properties

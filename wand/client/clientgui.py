@@ -2,7 +2,7 @@ import collections
 import pyqtgraph as pg
 import pyqtgraph.dockarea as dock
 
-from . import QtGui, QtCore
+from PyQt5 import QtGui, QtCore
 
 from wand.client.client import ClientBackend
 from wand.client.channel import Channel
@@ -383,7 +383,7 @@ class ClientGUI(ClientBackend):
         self.create_toolbars()
 
     def show(self):
-        self.win.show()
+        self.win.showMaximized()
 
     def place_channels(self):
         """Place the channel docks into the dock area"""

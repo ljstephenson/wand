@@ -1,0 +1,32 @@
+
+package:
+  name: wand
+  version: 2.1.3
+
+source:
+  path: ../
+
+build:
+  script: python setup.py install --single-version-externally-managed --record record.txt --conda
+  number: 1
+
+requirements:
+  build:
+    - python 
+    - setuptools
+    - quamash
+    - json-rpc
+    - pyqtgraph
+
+  run:
+    - python
+    - quamash
+    - json-rpc
+    - pyqtgraph
+
+test:
+  imports:
+    - wand
+
+about:
+  home: https://github.com/ljstephenson/wand.git

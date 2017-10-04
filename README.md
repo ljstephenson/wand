@@ -18,7 +18,7 @@ conda config --get channels
 
 If your output contains the following, then you have added the channel
 ```
---add channels 'http:/conda.anaconda.org/m-labs/label/main'
+--add channels 'http://conda.anaconda.org/m-labs/label/main'
 ```
 
 ### Installation

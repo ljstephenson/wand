@@ -15,7 +15,7 @@ else:
 
 setup(
     name='wand',
-    version='2.1.4',
+    version='2.1.5',
     url='https://github.com/ljstephenson/wand',
     author='Laurent Stephenson',
     packages=find_packages(),

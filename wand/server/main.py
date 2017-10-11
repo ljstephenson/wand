@@ -16,6 +16,7 @@ def parse_args():
         help=("Ignore unsecure warnings when SSL is used to connect to an" +
             " InfluxDB server with a self-signed certificate"),
         default=False,
+        nargs='?',
         const='store_true')
     common.add_verbosity_args(parser)
     return parser.parse_args()

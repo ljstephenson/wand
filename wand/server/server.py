@@ -26,6 +26,17 @@ def import_modules(simulate):
         import wand.server.switcher as switcher
 
 
+def ignore_unsecure_sll():
+    """
+    Ignore unsecure SSL warning if InfluxDB server uses a self-signed
+    certificate.
+    """
+    import requests
+    from requests.packages.urllib3.exceptions import InsecureRequestWarning
+    requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
+    
+
+
 @common.with_log
 class Server(common.JSONRPCPeer):
     """
@@ -53,11 +64,13 @@ class Server(common.JSONRPCPeer):
     data_frequency = {'fast': 10, 'slow': 1}
     log_interval = 5
 
-    def __init__(self, simulate=False, **kwargs):
+    def __init__(self, simulate=False, unsecure_ssl=False, **kwargs):
         super().__init__(**kwargs)
         self.check_config()
         import_modules(simulate)
         self.simulate = simulate
+        if unsecure_ssl:
+            ignore_unsecure_sll()
         self.get_switcher()
         self.configure_osa()
         self.configure_wavemeter()

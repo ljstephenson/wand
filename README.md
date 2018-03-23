@@ -113,6 +113,15 @@ duplicate client name connected and run:
 wand_client <client-config>
 ```
 
+### Startup batch script
+You can use the batch script in `startup/start_wand.bat` to open both the server
+and client with a single click.
+
++ Copy `wand/startup/` to a location outside of the git repository
++ Modify the example `server_config.json` and `client_config.json` files
+appropriately
++ Double click `start_wand.bat`
+
 ## License
 
 Icon made using resources by [Freepik](http://www.freepik.com "Freepik") from

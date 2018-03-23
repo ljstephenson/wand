@@ -3,3 +3,4 @@ __pychache__/**
 *.pyc
 *.egg-info/
 Thumbs.db
+*.DS_Store

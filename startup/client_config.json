@@ -1,0 +1,23 @@
+{
+    "name":"WavemeterClientName",
+    "version":"2.1.5",
+    "servers":{
+        "WavemeterServerName":{
+            "host":"localhost",
+            "port":8888,
+            "channels":{
+                "T1-866":{"alias":"866"},
+		"T1-729":{"alias":"729"},
+		"T1-854":{"alias":"854"},
+		"T1-397":{"alias":"397"},
+		"T1-423":{"alias":"423"},
+		"T1-3P0":{"alias":"3P0"},
+		"T1-3P1":{"alias":"3P1"}
+                }
+            }
+        },
+    "layout":[
+            ["397", "729", "866", "854", "423"],
+			["3P1"]
+        ]
+}

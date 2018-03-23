@@ -21,12 +21,17 @@ If your output contains the following, then you have added the channel
 --add channels 'http://conda.anaconda.org/m-labs/label/main'
 ```
 
+If not enter the following command
+```
+conda config --add channels 'http://conda.anaconda.org/m-labs/label/main'
+```
+
 ### Installation
 
 First create the environment with the modules available to conda. If you don't
 care about using Qt5 and are happy with Qt4:
 ```
-conda create -n <name> python=3.5 numpy pyqt pyqtgraph -c defaults --override-channels
+conda create -n wand python=3.5 numpy pyqt pyqtgraph -c defaults --override-channels
 ```
 
 (The `-c defaults --override-channels` will ignore all but the default
@@ -34,24 +39,25 @@ channels in which conda searches for packages, including the m-labs channel)
 
 If you absolutely must use Qt5 and you have the m-labs channel added:
 ```
-conda create -n <name> python=3.5 numpy pyqtgraph quamash
+conda create -n wand python=3.5 numpy pyqtgraph quamash
 ```
 
 Activate your new environment:
 Windows:
 ```
-activate <name>
+activate wand
 ```
 
 'Nix:
 ```
-source activate <name>
+source activate wand
 ```
 
 Now you're ready for the actual install. If you only want to use the software
 and don't want to develop it:
 ```
-pip install https://github.com/ljstephenson/wand/zipball/master
+git clone https://gitlab.nist.gov/gitlab/ionstorage/third-party-tools/wand.git
+pip install ./wand/
 ```
 
 This will install all the other dependencies at the same time.

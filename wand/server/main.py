@@ -12,6 +12,12 @@ def parse_args():
     parser.add_argument("filename", help="JSON configuration file")
     parser.add_argument("-s", "--simulate",
                         help="Run as simulation", action='store_true')
+    parser.add_argument("--ignore_unsecure_ssl",
+        help=("Ignore unsecure warnings when SSL is used to connect to an" +
+            " InfluxDB server with a self-signed certificate"),
+        default=False,
+        nargs='?',
+        const='store_true')
     common.add_verbosity_args(parser)
     return parser.parse_args()
 
@@ -24,7 +30,10 @@ def main():
 
     loop = asyncio.get_event_loop()
 
-    s = server.Server(fname=args.filename, simulate=args.simulate)
+    s = server.Server(
+            fname=args.filename,
+            simulate=args.simulate,
+            unsecure_ssl=args.ignore_unsecure_ssl)
     s.startup()
 
     try:
